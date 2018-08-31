@@ -1,0 +1,74 @@
+﻿
+kuid                                    <kuid2:400260:98888231:1>
+username                                "zxPath MainBase"
+light                                   1
+category-class                          "WA"
+author                                  "Vladimir Zapara (TRam_)"
+organisation                            
+contact-website                         
+license                                 "freeware"
+kind                                    "scenery"
+category-region                         "RU"
+category-era                            "2000s"
+autoname                                1
+trainz-build                            3.3
+surveyor-only                           1
+
+script-include-table
+{
+  0                                     <kuid:400260:100120>
+}
+script                                  "JunctionLibrary Controler"
+class                                   "zxMainJunctionController"
+
+string-table
+{
+  update_window                         "Обновить окно"
+  initalljunctions                      "Инициализация стрелок : "
+  alrady_finished                       "завершено"
+  is_going                              "продолжается"
+  not_yet                               "не проводилось"
+  now                                   "завершено "
+  priority                              "приоритет"
+  initiate                              "маршруты"
+  deldubl                               "дублирующие"
+  initiate2                             "маршр."
+  deldubl2                              "дубл."
+  err_junctions                         "список ошибок у стрелок"
+  junct_err_info                        "Список ошибок у стрелок<br><br> Ошибки помечаются кодами 1, 2, 3. Код 1 соответствует отсутствию именованных объектов с одной из сторон от стрелки или её расположению перед точкой соединения сплайнов. Код 2 соответствует отсутствию именованных объектов с двух сторон и более. Код 3 соответствует наличию между стрелкой и точкой соединения спалйнов именованных или неименованных объектов, либо оба пути от стрелки ведут к одной и той же стрелке, при этом на них отсутствуют именованные путевые объекты.<br><br>"
+  err_info_1                            "код "
+  err_info_2                            " у '"
+  err_info_3                            "', соседние объекты '"
+  init_all_z7signals                    "Инициализация zx-светофоров : "
+  output_signals                        "список светофоров"
+  station                               "Станция "
+  from_                                 "От "
+  to_                                   " до "
+  help                                  "* имя стрелки,(0-влево 2-вправо),<br>(0-противошёрстная 1-пошёрстная)"
+  meter                                 " м"
+  toomuchpaths                          "Превышено максимальное количество маршрутов от светофора. Поставте маршрутные светфоры и объявите стоп-объекты."
+}
+
+mesh-table
+{
+  default
+  {
+    auto-create                         1
+    mesh                                "budka.im"
+  }
+}
+
+thumbnails
+{
+  0
+  {
+    image                               "thumbnail.jpg"
+    width                               240
+    height                              180
+  }
+}
+
+kuid-table
+{
+  0                                     <kuid:400260:100120>
+}
