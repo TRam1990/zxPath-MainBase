@@ -31,7 +31,9 @@ string MakeStationList();
 void RefreshBrowser();
 
 
-Browser sub_browser;
+Browser sub_browser = null;
+
+bool been_refreshing = false;
 
 
 
@@ -141,7 +143,7 @@ thread void InitSignals_All()
 			Calculated2=ST1.GetString("now = ")+(string)(i*100/s_list.size())+"%";
 
 			PostMessage(me,"Refresh","now",0.05);
-			if(sub_browser)
+			if(sub_browser and !been_refreshing)
 				PropertyBrowserRefresh(sub_browser);
 
 			Sleep(0.1);
@@ -220,7 +222,7 @@ thread void InitSignals_All()
 
 	PostMessage(me,"Refresh","now",0.0);
 
-	if(sub_browser)
+	if(sub_browser and !been_refreshing)
 		PropertyBrowserRefresh(sub_browser);
 	}
 
@@ -298,8 +300,9 @@ void SortAllStations()
 	string st_name2;
  
 	for( i=0; i < L; i++) 
-		{            
-    		for( j = 0; j < L-i; j++ ) 
+		{
+
+		for( j = 0; j < L-i; j++ ) 
 			{
      			q=j+1;
 
@@ -349,9 +352,16 @@ void SortAllSignasAtStation(int Station_id)
 	
  
  	for( i=0; i < svetof_numb; i++) 
-		{            
+		{  
+		if((i % 10) == 0)
+			Sleep(0.01);
+          
     		for( j =svetof_numb-1; j > i; j-- ) 
-			{     
+			{ 
+
+			if((j % 20) == 0)
+				Sleep(0.01);
+    
       			q=j-1;
 			
 			if(Comp_str_FL2(NewSoup.GetNamedTag("sv^"+j) , NewSoup.GetNamedTag("sv^"+q)) )
@@ -444,7 +454,7 @@ thread void InitJunctions_All()
 		{
 
 		q++;
-		if(q>50)
+		if(q>20)
 			{
 			qq++;
 
@@ -455,7 +465,7 @@ thread void InitJunctions_All()
 
 
 				PostMessage(me,"Refresh","now",0);
-				if(sub_browser)
+				if(sub_browser and !been_refreshing)
 					PropertyBrowserRefresh(sub_browser);
 
 				qq = 0;
@@ -771,7 +781,7 @@ thread void InitJunctions_All()
 	Junct_init = false;
 
 	PostMessage(me,"Refresh","now",0);
-	if(sub_browser)
+	if(sub_browser and !been_refreshing)
 		PropertyBrowserRefresh(sub_browser);
 	}
 
@@ -1215,7 +1225,7 @@ thread void InitStation(int currentStation, bool stop)
 				qq = 0;
 				part_of_st=" "+(string)(i*100/N)+"%";
 				PostMessage(me,"Refresh","now",0.1);
-				if(sub_browser)
+				if(sub_browser and !been_refreshing)
 					PropertyBrowserRefresh(sub_browser);
 				}
 
@@ -1232,7 +1242,7 @@ thread void InitStation(int currentStation, bool stop)
 		{
 		PostMessage(me,"Refresh","now",0.0);
 
-		if(sub_browser)
+		if(sub_browser and !been_refreshing)
 			PropertyBrowserRefresh(sub_browser);
 		}
 	}
@@ -1261,7 +1271,7 @@ thread void InitPath_All()
 		}
 	PostMessage(me,"Refresh","now",0.0);
 
-	if(sub_browser)
+	if(sub_browser and !been_refreshing)
 		PropertyBrowserRefresh(sub_browser);
 	}
 
@@ -1310,6 +1320,9 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 
 	int lenA_num=0;
 	string dst_name;
+
+
+	int sleep_cnt = 0;
 
 	
 	for(k=0;k<SizeOfPaths;k++) 
@@ -1361,7 +1374,16 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 			Id_A[lenA_num]=k;
 
 			lenA_num++;
+
+
+			sleep_cnt++;
+			if(sleep_cnt > 1)
+				{
+				sleep_cnt = 0;
+				Sleep(0.3);
+				}
 			}
+			
 		}
 
 	if(lenA_num <= 1)
@@ -1421,6 +1443,7 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 
 
 			SizeOfPaths--;
+
 			}	
 
 		sv_1name=null;
@@ -1486,7 +1509,7 @@ thread void DeletePathStation(int station, bool stop, bool reset)
 				{
 				part_of_st=" "+(string)(j*100/svetof_numb)+"%";
 				PostMessage(me,"Refresh","now",0);
-				if(sub_browser)
+				if(sub_browser and !been_refreshing)
 					PropertyBrowserRefresh(sub_browser);
 				Sleep(0.1);
 				}
@@ -1502,7 +1525,7 @@ thread void DeletePathStation(int station, bool stop, bool reset)
 	if(stop)
 		{
 		PostMessage(me,"Refresh","now",0.0);
-		if(sub_browser)
+		if(sub_browser and !been_refreshing)
 			PropertyBrowserRefresh(sub_browser);
 		}
 	}
@@ -1531,7 +1554,7 @@ thread void DeleteLongPaths()
 
 	ResetJunctions();
 	PostMessage(me,"Refresh","now",0.0);
-	if(sub_browser)
+	if(sub_browser and !been_refreshing)
 		PropertyBrowserRefresh(sub_browser);
 	}
 
@@ -1876,9 +1899,11 @@ public void SetProperties(Soup soup)
 
 public void PropertyBrowserRefresh(Browser browser)
 	{
+	been_refreshing = true;
 	inherited(browser);
 
 	sub_browser = browser;
+	been_refreshing = false;
 	}
 
 
