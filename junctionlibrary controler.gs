@@ -46,8 +46,24 @@ void SortAllSignasAtStation(int Station_id);
 void MainShowSignals();
 
 
+
+
+bool Junct_init=false;
+bool Sign_init = false;
+bool Path_init = false;
+bool Path_delete_init = false;
+
+public bool Is_refresh = false;
+
+
+
 thread void InitSignals_All()
 	{
+
+	Sign_init = true;
+
+
+
 	int i,j,q=0;
 	Signal[] s_list= World.GetSignalList();
 
@@ -71,7 +87,11 @@ thread void InitSignals_All()
 		if(q>100)
 			{
 			Calculated2=ST1.GetString("now = ")+(string)(i*100/s_list.size())+"%";
+
+			PostMessage(me,"Refresh","now",0.05);
+
 			Sleep(0.1);
+
 			q=0;
 			}
 
@@ -157,6 +177,10 @@ thread void InitSignals_All()
 	IsInited2=true;
 	Calculated2=ST1.GetString("alrady_finished");
 	RefreshBrowser();
+
+	Sign_init = false;
+
+	PostMessage(me,"Refresh","stop",0.0);
 	}
 
 
@@ -317,6 +341,10 @@ void SortAllSignasAtStation(int Station_id)
 
 thread void InitJunctions_All()
 	{
+	Junct_init = true;
+
+
+
 	int i;
 
 	Calculated=ST1.GetString("Is_going");
@@ -356,6 +384,9 @@ thread void InitJunctions_All()
 		if(q>100)
 			{
 			Calculated=ST1.GetString("now")+(string)(i*100/j_list.size())+"%";
+
+
+			PostMessage(me,"Refresh","now",0.2);
 
 			Sleep(0.5);
 			q=0;
@@ -617,6 +648,10 @@ thread void InitJunctions_All()
 
 
 	Calculated=ST1.GetString("alrady_finished");
+
+	Junct_init = false;
+
+	PostMessage(me,"Refresh","stop",0.0);
 	}
 
 
@@ -657,6 +692,7 @@ Soup ToSoupJL()
 		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Poshorstnost",J_element.Poshorstnost);
 		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".JunctPos",J_element.JunctPos);
 		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".PrevJunction",J_element.PrevJunction);
+		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".LinkedSignal",J_element.LinkedSignal);
 
 
 		sp3.SetNamedTag((string)("soup_name_"+i),(string)(BSJunctionLib.DBSE[i].a));
@@ -733,6 +769,7 @@ void FromSoupJL(Soup sp7)
 		J_element[i].Poshorstnost = sp7.GetNamedTagAsBool(J_name+".Poshorstnost",false);
 		J_element[i].JunctPos = sp7.GetNamedTagAsInt(J_name+".JunctPos",1); 			
 		J_element[i].PrevJunction = sp7.GetNamedTagAsInt(J_name+".PrevJunction",-1);
+		J_element[i].LinkedSignal = sp7.GetNamedTag(J_name+".LinkedSignal");
 
 
 		if(PathLib.Find(J_element[i].Permit_done,false)<0)
@@ -799,13 +836,7 @@ public string GetDescriptionHTML(void)
         
 	s=s+HTMLWindow.MakeTable
 		(
-		HTMLWindow.MakeRow
-			(
-			HTMLWindow.MakeCell
-				(
-				HTMLWindow.MakeLink("live://property/zero1",ST1.GetString("Update_window"))
-				)
-			)+
+
 		HTMLWindow.MakeRow
 			(
 			HTMLWindow.MakeCell
@@ -1016,6 +1047,9 @@ string MakeStationList()
 
 thread void InitStation(int currentStation)
 	{
+	Path_init = true;
+
+
 	int i;
 	int N=StationProperties.GetNamedTagAsInt(StationProperties.GetNamedTag("station_name_by_ID"+ currentStation)+".svetof_number",0);
 	Soup St_prop = StationProperties.GetNamedSoup(StationProperties.GetNamedTag("station_name_by_ID"+ currentStation)+".svetof_soup");
@@ -1029,12 +1063,19 @@ thread void InitStation(int currentStation)
 		if(St_prop.GetNamedTagAsInt("sv_type^"+i,0)&(2+4+8))
 			{
 			MakeAllPathsFromSignal(currentStation,i);
+
+			PostMessage(me,"Refresh","now",0.1);
+
 			Sleep(0.3);
 			}
 		}
 
 	part_of_st="";
 
+
+	Path_init = false;
+
+	PostMessage(me,"Refresh","stop",0.0);
 	}
 
 
@@ -1268,6 +1309,10 @@ thread void DeletePathSignal(int station, int sign_id)
 
 thread void DeletePathStation(int station)
 	{
+	Path_delete_init = true;
+
+
+
 	string ST_name = StationProperties.GetNamedTag("station_name_by_ID"+currentStation);
 	int svetof_numb=StationProperties.GetNamedTagAsInt(ST_name+".svetof_number",0);
 	Soup sv_sp= StationProperties.GetNamedSoup(ST_name +".svetof_soup");
@@ -1280,7 +1325,7 @@ thread void DeletePathStation(int station)
 		int SizeOfPaths=sv_sp.GetNamedTagAsInt("sv_paths_number^"+j,-1);
 
 
-		Calculated2=ST1.GetString("now = ")+(string)(j*100/svetof_numb)+"%";
+		part_of_st=" "+(string)(j*100/svetof_numb)+"%";
 
 
 
@@ -1289,10 +1334,18 @@ thread void DeletePathStation(int station)
 			if( !DeleteLongAltPaths(ST_name, j, i) )
 				i++;
 			if(i % 10 == 0)
+				{
+				PostMessage(me,"Refresh","now",0.05);
 				Sleep(0.01);
+				}
 			}
 		}
-	Calculated2= "";
+	part_of_st= "";
+
+	Path_delete_init = false;
+
+
+	PostMessage(me,"Refresh","stop",0.0);
 	}
 
 
@@ -1390,7 +1443,7 @@ public string GetContentViewDetails(void)
 
 		for(i=0;i<num;i++)
 			{
-			s=s+ S_element.GetNamedTag("sv^"+i) +"; ";
+			s=s+ S_element.GetNamedTag("sv^"+i)+" '"+ S_element.GetNamedTag("sv_n^"+i) +"'<br>";
 			}
 		}
 	else
@@ -1635,6 +1688,65 @@ public void SetProperties(Soup soup)
 
 	reset_jun = soup.GetNamedTagAsBool("reset_jun",false);
 	}
+
+
+
+thread void BrowserRefresher(Browser browser)
+	{
+	Is_refresh = true;
+
+	PostMessage(me,"Refresh","stop2",0.1);
+
+	wait()
+		{
+		on "Refresh","now":
+			{
+			string html = GetDescriptionHTML();
+
+			browser.LoadHTMLString(browser.GetAsset(), html);
+
+			continue;
+			}
+
+		on "Refresh","stop":
+			{
+			string html = GetDescriptionHTML();
+
+			browser.LoadHTMLString(browser.GetAsset(), html);
+
+			if (m_propertyObjectHandler)
+				m_propertyObjectHandler.RefreshBrowser(browser);
+
+			if( Junct_init or Sign_init or Path_init or Path_delete_init )
+				continue;
+
+			}
+
+		on "Refresh","stop2":
+			{
+			if( Junct_init or Sign_init or Path_init or Path_delete_init )
+				continue;
+
+			}
+
+		}
+
+
+	Is_refresh = false;
+
+	}
+
+
+
+
+public void PropertyBrowserRefresh(Browser browser)
+	{
+	inherited(browser);
+
+	if(!Is_refresh )
+		BrowserRefresher(browser);	
+	}
+
 
 
 

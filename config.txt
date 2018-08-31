@@ -1,5 +1,4 @@
 ﻿
-kuid                                    <kuid2:400260:98888231:1>
 username                                "zxPath MainBase"
 light                                   1
 category-class                          "WA"
@@ -67,6 +66,7 @@ thumbnails
     height                              180
   }
 }
+kuid                                    <kuid2:400260:98888231:3>
 
 kuid-table
 {
