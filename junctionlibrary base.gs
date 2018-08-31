@@ -206,8 +206,6 @@ public int FindJunctionPropertiesId(Junction Current)
 
 public MapObject MakeSearchByJunctions(int JunctionPropId, MapObject previous, int J_direction )
 	{
-
-
 	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous or (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight==previous)
 		{
 		return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back;
@@ -251,19 +249,15 @@ public int GetDirectionByJunctions(int JunctionPropId, MapObject previous, int J
 
 public bool ThisJPoShorstn(int JunctionPropId, MapObject previous)
 	{
-	
 	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous or (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight==previous)
 		return true;
 	return false;
-
-
 	}
 
 
 
 public int TrueJdir(int JunctionPropId, MapObject previous)
 	{
-	
 	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous)
 		return 0;
 
@@ -770,7 +764,6 @@ int self_state; //состояние
 					{
 					if(   ChangeSpanDirectionFor(P_element.StationName, P_element.SignalId, P_element.pathN)  )
 						CheckPath(i);
-
 					}
 				}
 
@@ -788,14 +781,12 @@ int self_state; //состояние
 			if(CheckPathForRemove(i))
 				return false;
 			}
-		
 		}
 
 //er45="res "+PathLib.DBSE[i].a+" "+(cast<PathClass>(PathLib.DBSE[i].Object)).mode+" "+(cast<PathClass>(PathLib.DBSE[i].Object)).self_state+" "+(cast<PathClass>(PathLib.DBSE[i].Object)).description;
 //Interface.Log(er45);
 
 	return true;
-
 	}
 
 
@@ -821,9 +812,7 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 		return;
 		}
 
-
 	string TempAttachedJunction;
-
 
 	while(i<JunctionsNumber2)
 			{
@@ -1185,11 +1174,10 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 	MapObject MO1;
 	MapObject MO0;
 
-
 	Junction JN2 = cast<Junction>Router.GetGameObject( (BSJunctionLib.DBSE[id1]).a );
-
 	JunctionBase JN = cast<JunctionBase>(JN2);
 
+	//Interface.Log("Any lock "+JN2.GetName()+" dir1 "+dir1+" poshorstn "+poshorstn+" i "+i+" num "+num+" poeznoi "+poeznoi);
 
 	// поиск назад, против направления маршрута
 
@@ -1199,8 +1187,7 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 	else		//back
 		GSTS=JN.BeginTrackSearch(JunctionBase.DIRECTION_BACKWARD);
 			
-
-	MO1=me;			// :)
+	MO1=me;	
 
 
 	(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = false;
@@ -1517,10 +1504,6 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 // поиск над самой стрелкой
 
 
-
-// поиск над самой стрелкой
-
-
 	JuctionWithProperties JWP=cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object);
 	MO1=JWP.back;
 	bool str_dir = JWP.back_dir;
@@ -1538,12 +1521,29 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 			str_dir=JWP.frontRight_dir;
 			}
 
-		if(MO1.isclass(Junction))	// с обоих сторон стрелки, поиск невозможен
-			return false;
+		if(MO1.isclass(Junction))	// с обоих сторон стрелки, поиск от следующей?
+			{
+			MO1=JWP.back;
+			int other_id = BSJunctionLib.Find(MO1.GetName(),false);
+			if(other_id < 0)
+				return false;
+
+			int next_dir = JunctionBase.DIRECTION_BACKWARD;
+
+			MO0 = cast<MapObject>JN2;
+
+			if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[other_id]).Object)).frontLeft==MO0)
+				next_dir = 0;
+			else if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[other_id]).Object)).frontRight==MO0)
+				next_dir = 2;
+
+			GSTS=(cast<JunctionBase>(cast<Junction>MO1)).BeginTrackSearch(next_dir);
+			}
+		else
+			GSTS=(cast<Trackside>MO1).BeginTrackSearch(!str_dir);
 		}
 	
 
-	GSTS=(cast<Trackside>MO1).BeginTrackSearch(!str_dir);
 	float prev_veh_dist = -1.0;
 	MO1= me;
 
@@ -1551,6 +1551,8 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 	while(!MO1.isclass(Junction))
 		{
 		MO1=GSTS.SearchNext();
+		if(!MO1)
+			return false;
 		if(MO1.isclass(Vehicle))
 			prev_veh_dist = GSTS.GetDistance();
 		}
@@ -1715,7 +1717,6 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 								return false;
 
 							}
-							
 						}
 					}
 				}
