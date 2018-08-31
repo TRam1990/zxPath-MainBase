@@ -1131,11 +1131,12 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 	{
 	GSTrackSearch GSTS;
 	MapObject MO1;
+	MapObject MO0;
 
 	if( TrainzScript.GetTrainzVersion() < 3.7 )
 		{
 		JuctionWithProperties JWP = cast<JuctionWithProperties>((BSJunctionLib.DBSE[id1]).Object);
-		MapObject MO0;
+
 		int str_dir;
 				
 		if(poshorstn)
@@ -1182,16 +1183,16 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 					bool dir2 = (bool)str_dir;
 
 
-					while(!MO1.isclass(Junction) and !(MO1.isclass(Signal)  and !dir2 and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
+					while(MO1 and !MO1.isclass(Junction) and !(MO1.isclass(Signal)  and !dir2 and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
 						{
 						MO1=GSTS.SearchNext();
 						dir2 = GSTS.GetFacingRelativeToSearchDirection();
 	
-						if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) )
+						if(MO1 and (MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) ))
 							any_train = true;	
 						}
 	
-					if(MO1.isclass(Signal))
+					if(MO1 and MO1.isclass(Signal))
 						{
 						if(any_train)
 							return true;
@@ -1243,10 +1244,9 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 			GSTS=JN.BeginTrackSearch(JunctionBase.DIRECTION_BACKWARD);
 			
 
-		MO1=GSTS.SearchNext();
+		MO1=me;			// :)
 	
-		if(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)>=0  and !remove )
-			return true;
+
 
 		if(i==0)
 			{
@@ -1255,21 +1255,29 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 				bool any_train = false;
 			
 
-				while(!MO1.isclass(Junction)  and !(MO1.isclass(Signal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
+				while(MO1 and !MO1.isclass(Junction)  and !(MO1.isclass(Signal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
 					{
 					MO1=GSTS.SearchNext();
 	
-					if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) )
+					if(MO1 and (MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) ))
 						any_train = true;	
 					}
 
-				if(MO1.isclass(Signal))
+
+				if(MO1 and MO1.isclass(Junction))
+					{
+					float old_dist_1 = GSTS.GetDistance();
+					MO0=GSTS.SearchNext();
+					if(MO0 and MO0.isclass(Vehicle) and (GSTS.GetDistance() - old_dist_1)<7 )
+						any_train = true;
+					}
+
+				if(MO1 and MO1.isclass(Signal))
 					{
 					if(any_train)
 						return true;
 					}
-				else
-					return false;
+
 				}
 			else
 				{
@@ -1280,6 +1288,16 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 					if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) )
 						return true;	
 					}
+
+				if(MO1 and MO1.isclass(Junction))
+					{
+					float old_dist_1 = GSTS.GetDistance();
+					MO0=GSTS.SearchNext();
+					if(MO0 and MO0.isclass(Vehicle) and (GSTS.GetDistance() - old_dist_1)<7 )
+						return true;
+					}
+
+
 				}
 			}
 		else
@@ -1292,6 +1310,16 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 				if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0  or remove) )
 					return true;	
 				}
+
+
+			if(MO1 and MO1.isclass(Junction))
+				{
+				float old_dist_1 = GSTS.GetDistance();
+				MO0=GSTS.SearchNext();
+				if(MO0 and MO0.isclass(Vehicle) and (GSTS.GetDistance() - old_dist_1)<7 )
+					return true;
+				}
+
 			}
 
 		// проверка освобождения ближайших к стрелке участков пути
