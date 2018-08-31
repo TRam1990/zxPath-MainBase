@@ -31,6 +31,9 @@ string MakeStationList();
 void RefreshBrowser();
 
 
+Browser sub_browser;
+
+
 
 int currentStation=-1;
 
@@ -52,9 +55,26 @@ bool Sign_init = false;
 bool Path_init = false;
 bool Path_delete_init = false;
 
-public bool Is_refresh = false;
 
+void ResetJunctions()
+	{
 
+	int N=BSJunctionLib.N;
+	int i;
+
+	int dir1;
+	for(i=0;i<N;i++)
+		{
+		Junction temp = cast<Junction>(Router.GetGameObject(BSJunctionLib.DBSE[i].a));
+
+		if( temp )
+			{
+			dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).OldDirection;
+			temp.SetDirection(dir1);	
+			}
+		}
+
+	}
 
 thread void InitSignals_All()
 	{
@@ -63,7 +83,7 @@ thread void InitSignals_All()
 
 
 
-	int i,j,q=0;
+	int i,j,q;
 	Signal[] s_list= World.GetSignalList();
 
 	Soup SignalSoup;
@@ -71,10 +91,43 @@ thread void InitSignals_All()
 
 	string signal_name;
 
+
+	if(IsInited2)
+		{
+		int L=StationProperties.GetNamedTagAsInt("st_Number",0);
+
+		for(i=0;i<L;i++)
+			{
+
+			string ST_name = StationProperties.GetNamedTag("station_name_by_ID"+i);
+			Soup sv_sp= StationProperties.GetNamedSoup(ST_name +".svetof_soup");
+			int svetof_numb=StationProperties.GetNamedTagAsInt(ST_name+".svetof_number",0);
+
+
+			for(j=0;j<svetof_numb;j++)
+				{
+				int SizeOfPaths=sv_sp.GetNamedTagAsInt("sv_paths_number^"+j,-1);
+
+				for(q=0;q<SizeOfPaths;q++) 
+					{
+					sv_sp.GetNamedSoup("sv_^"+j+"^"+q).Clear();
+					}
+				}
+			sv_sp.Clear();
+			
+			}
+
+		StationProperties.Clear();
+
+		StationProperties = null;
+		}
+
+
 	
 	StationProperties=Constructors.NewSoup();
 
 	int p=0;
+	q=100;
 	int Station_id;
 
 	int svetof_numb;
@@ -88,6 +141,8 @@ thread void InitSignals_All()
 			Calculated2=ST1.GetString("now = ")+(string)(i*100/s_list.size())+"%";
 
 			PostMessage(me,"Refresh","now",0.05);
+			if(sub_browser)
+				PropertyBrowserRefresh(sub_browser);
 
 			Sleep(0.1);
 
@@ -106,11 +161,6 @@ thread void InitSignals_All()
 
 			if(sign_type>=1 and !(sign_type&32) and station_name!=""  and (!(sign_type&16) or sign_type&4  ))
 				{
-
-				//string a1311="search for "+station_name;
-				//Interface.Log(a1311);
-
-
 				Station_id=StationProperties.GetNamedTagAsInt(station_name,-1);
 				
 				if(Station_id>=0)
@@ -118,19 +168,9 @@ thread void InitSignals_All()
 					svetof_numb=StationProperties.GetNamedTagAsInt(station_name+".svetof_number",0);
 					StationProperties.SetNamedTag(station_name+".svetof_number",(int)(svetof_numb+1));
 
-					Soup sec_coup=Constructors.NewSoup();
-
-					sec_coup.Copy(StationProperties.GetNamedSoup(station_name+".svetof_soup"));
-
-
-					sec_coup.SetNamedTag("sv_n^"+svetof_numb,(s_list[i]).GetName());
-					sec_coup.SetNamedTag("sv^"+svetof_numb,signal_name);
-					sec_coup.SetNamedTag("sv_type^"+svetof_numb,sign_type);
-
-
-
-					StationProperties.SetNamedSoup(station_name+".svetof_soup",sec_coup);
-
+					(StationProperties.GetNamedSoup(station_name+".svetof_soup")).SetNamedTag("sv_n^"+svetof_numb,(s_list[i]).GetName());
+					(StationProperties.GetNamedSoup(station_name+".svetof_soup")).SetNamedTag("sv^"+svetof_numb,signal_name);
+					(StationProperties.GetNamedSoup(station_name+".svetof_soup")).SetNamedTag("sv_type^"+svetof_numb,sign_type);
 					}
 				else
 					{
@@ -175,11 +215,13 @@ thread void InitSignals_All()
 
 	IsInited2=true;
 	Calculated2=ST1.GetString("alrady_finished");
-	RefreshBrowser();
-
+	
 	Sign_init = false;
 
-	PostMessage(me,"Refresh","stop",0.0);
+	PostMessage(me,"Refresh","now",0.0);
+
+	if(sub_browser)
+		PropertyBrowserRefresh(sub_browser);
 	}
 
 
@@ -210,7 +252,7 @@ void Log_Signals()
 
 		for(j=0;j<num;j++)
 			{
-			a="svetofor "+j+" is "+S_element.GetNamedTag("sv^"+j) +" numb_of_paths "+S_element.GetNamedTag("sv_n^"+j)   ;
+			a="svetofor "+j+" is "+S_element.GetNamedTag("sv^"+j) +" numb_of_paths "+S_element.GetNamedTag("sv_n^"+j) ;
 			Interface.Log(a);
 			}
 		}
@@ -338,23 +380,19 @@ void SortAllSignasAtStation(int Station_id)
 
 
 
+
 thread void InitJunctions_All()
 	{
-	Junct_init = true;
 
+	Junct_init = true;
 
 
 	int i;
 
-	Calculated=ST1.GetString("Is_going");
-
-
-	BSJunctionLib=new BinarySortedArrayS();
+	Calculated=ST1.GetString("Is_going");	
 
 	Junction[] j_list=World.GetJunctionList();
 
-	JuctionWithProperties[] J_element=new JuctionWithProperties[j_list.size()+10];
-	
 	GSTrackSearch GSTS_Initing;
 
 	int OldDir;
@@ -371,35 +409,92 @@ thread void InitJunctions_All()
 
 	junct_err_string="";
 
-	for(i=0;i<j_list.size()+5;i++)
-		J_element[i]=new JuctionWithProperties();
-		
-	BSJunctionLib.UdgradeArraySize( j_list.size()+40 );
+
+
+
+	for(i=0;i<BSJunctionLib.DBSE.size();i++)
+		{
+
+		if(BSJunctionLib.DBSE[i].Object and BSJunctionLib.DBSE[i].Object.isclass(JuctionWithProperties))
+			{
+			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).back = null;
+	
+			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).frontLeft = null;
+	
+			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).frontRight = null;
+			}
+		BSJunctionLib.DBSE[i].Object = null;
+
+		}
+
+
+	BSJunctionLib.DBSE[0,BSJunctionLib.DBSE.size()] = null;
+
+	BSJunctionLib.N = 0;
+	
+
+	Sleep(0.25);
+
+	int qq =5;
+
+	int err_numb = 0;
 
 		
 	for(i=0;i<j_list.size();i++)
 		{
+
 		q++;
-		if(q>100)
+		if(q>50)
 			{
-			Calculated=ST1.GetString("now")+(string)(i*100/j_list.size())+"%";
+			qq++;
+
+			if(qq>5)
+				{
+
+				Calculated=ST1.GetString("now")+(string)(i*100/j_list.size())+"%";
 
 
-			PostMessage(me,"Refresh","now",0.2);
+				PostMessage(me,"Refresh","now",0);
+				if(sub_browser)
+					PropertyBrowserRefresh(sub_browser);
 
-			Sleep(0.5);
+				qq = 0;
+
+				Sleep(0.3);
+				}
+
+			Sleep(0.3);
 			q=0;
 			}
+
+
+
+		bool add_element = false;
+
+		int JunctionID1=FindJunctionPropertiesId(j_list[i]);
+
+		JuctionWithProperties J_element;
+
+		if(JunctionID1 >= 0)
+			{
+			J_element = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[JunctionID1].Object));
+			}
+		else
+			{
+
+		 	J_element = new JuctionWithProperties();
+			add_element = true;
+			}
+
 
 		bool broken1 = false;
 		
 		OldDir=j_list[i].GetDirection();
-		
-		J_element[i].OldDirection=OldDir;
-		
+
+		J_element.OldDirection=OldDir;
 
 		j_list[i].SetDirection(Junction.DIRECTION_LEFT);
-		
+
 		GSTS_Initing=j_list[i].BeginTrackSearch(true);
 
 		MO_arr[0]=GSTS_Initing.SearchNext();
@@ -411,7 +506,7 @@ thread void InitJunctions_All()
 		else
 			broken1 = true;
 
-		
+	
 		GSTS_Initing=j_list[i].BeginTrackSearch(false);
 
 		MO_arr[1]=GSTS_Initing.SearchNext();
@@ -451,85 +546,103 @@ thread void InitJunctions_All()
 
 		j_list[i].SetDirection(OldDir);
 
-
 		if(!MO_arr[0] and MO_arr[1] and MO_arr[2] and MO_arr[3])
+			{
 			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3") +MO_arr[1].GetName() +"', '"+ MO_arr[2].GetName() +"', '"+ MO_arr[3].GetName()+"<br>";
-
+			err_numb++;
+			}
 		else if(MO_arr[0] and !MO_arr[1] and MO_arr[2] and MO_arr[3])
+			{
 			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3")+MO_arr[0].GetName() +"', '"+ MO_arr[2].GetName() +"', '"+ MO_arr[3].GetName()+"'<br>";
-
+			err_numb++;
+			}
 		else if(MO_arr[0] and MO_arr[1] and !MO_arr[2] and MO_arr[3])
+			{
 			junct_err_string=junct_err_string+ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3")+MO_arr[0].GetName() +"', '"+ MO_arr[1].GetName() +"', '"+ MO_arr[3].GetName()+"'<br>";
-
+			err_numb++;
+			}
 		else if(MO_arr[0] and MO_arr[1] and MO_arr[2] and !MO_arr[3])
+			{
 			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3")+MO_arr[0].GetName() +"', '"+ MO_arr[1].GetName() +"', '"+ MO_arr[2].GetName()+"'<br>";
+			err_numb++;
+			}
 		else if(!broken1)
 			{
 			if(MO_arr[0] == MO_arr[1] and MO_arr[2] == MO_arr[3])
+				{
 				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3")+MO_arr[0].GetName() +"', '"+ MO_arr[2].GetName()+"'<br>";
-
+				err_numb++;
+				}
 			else if(MO_arr[0] == MO_arr[2] and MO_arr[1] == MO_arr[3])
+				{
 				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3")+MO_arr[0].GetName() +"', '"+ MO_arr[1].GetName()+"'<br>";
-
+				err_numb++;
+				}
 			else if(MO_arr[0] == MO_arr[3] and MO_arr[1] == MO_arr[2])
+				{
 				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ j_list[i].GetName()+ ST1.GetString("err_info_3")+MO_arr[0].GetName() +"', '"+ MO_arr[1].GetName()+"'<br>";
+				err_numb++;
+				}
 
 			}
 		else
+			{
 			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"2"+ST1.GetString("err_info_2")+j_list[i].GetName()+"'<br>";
-	
+			err_numb++;
+			}
+
 
 		if(MO_arr[1] and MO_arr[1]==MO_arr[3])
 			{
 			if(MO_arr[1].isclass(Junction))
-				J_element[i].back_dir=-1;
+				J_element.back_dir=-1;
 			else
 				{
 				if(Obj_direction[1])
-					J_element[i].back_dir=1;
+					J_element.back_dir=1;
 				else
-					J_element[i].back_dir=0;
+					J_element.back_dir=0;
 				}
-			J_element[i].back=MO_arr[1];
+			J_element.back=MO_arr[1];
 
 			if(MO_arr[0])
 				{
 				if(MO_arr[0].isclass(Junction))
-					J_element[i].frontLeft_dir=-1;
+					J_element.frontLeft_dir=-1;
 				else
 					{
 					if(Obj_direction[0])
-						J_element[i].frontLeft_dir=1;
+						J_element.frontLeft_dir=1;
 					else
-						J_element[i].frontLeft_dir=0;
+						J_element.frontLeft_dir=0;
 					}
 
-				J_element[i].frontLeft=MO_arr[0];
+				J_element.frontLeft=MO_arr[0];
 				}
 			else
 				{
-				J_element[i].frontLeft_dir=1;
-				J_element[i].frontLeft=null;
+				J_element.frontLeft_dir=1;
+				J_element.frontLeft=null;
 				}
 
 			if(MO_arr[2])
 				{
 				if(MO_arr[2].isclass(Junction))
-					J_element[i].frontRight_dir=-1;
+					J_element.frontRight_dir=-1;
 				else
 					{
 					if(Obj_direction[2])
-						J_element[i].frontRight_dir=1;
+						J_element.frontRight_dir=1;
 					else
-						J_element[i].frontRight_dir=0;
+						J_element.frontRight_dir=0;
 					}
 
-				J_element[i].frontRight=MO_arr[2];
+				J_element.frontRight=MO_arr[2];
 				}
 			else
 				{
-				J_element[i].frontRight=null;
-				J_element[i].frontRight_dir=1;
+				J_element.frontRight=null;
+				J_element.frontRight_dir=1;
 				}
 
 
@@ -540,62 +653,63 @@ thread void InitJunctions_All()
 		if(MO_arr[0] and MO_arr[0]==MO_arr[2])
 			{
 			if(MO_arr[0].isclass(Junction))
-				J_element[i].back_dir=-1;
+				J_element.back_dir=-1;
 			else
 				{
 				if(Obj_direction[0])
-					J_element[i].back_dir=1;
+					J_element.back_dir=1;
 				else
-					J_element[i].back_dir=0;
+					J_element.back_dir=0;
 				}
-			J_element[i].back=MO_arr[0];
+			J_element.back=MO_arr[0];
 
 
 			if(MO_arr[1])
 				{
 				if(MO_arr[1].isclass(Junction))
-					J_element[i].frontLeft_dir=-1;
+					J_element.frontLeft_dir=-1;
 				else
 					{
 					if(Obj_direction[1])
-						J_element[i].frontLeft_dir=1;
+						J_element.frontLeft_dir=1;
 					else
-						J_element[i].frontLeft_dir=0;
+						J_element.frontLeft_dir=0;
 					}
 
-				J_element[i].frontLeft=MO_arr[1];
+				J_element.frontLeft=MO_arr[1];
 				}
 			else
 				{
-				J_element[i].frontLeft_dir=1;
-				J_element[i].frontLeft=null;
+				J_element.frontLeft_dir=1;
+				J_element.frontLeft=null;
 				}
 
 			
 			if(MO_arr[3])
 				{
 				if(MO_arr[3].isclass(Junction))
-					J_element[i].frontRight_dir=-1;
+					J_element.frontRight_dir=-1;
 				else
 					{
 					if(Obj_direction[3])
-						J_element[i].frontRight_dir=1;
+						J_element.frontRight_dir=1;
 					else
-						J_element[i].frontRight_dir=0;
+						J_element.frontRight_dir=0;
 					}
-				J_element[i].frontRight=MO_arr[3];
+				J_element.frontRight=MO_arr[3];
 				}
 			else
 				{
-				J_element[i].frontRight=null;
-				J_element[i].frontRight_dir=1;
+				J_element.frontRight=null;
+				J_element.frontRight_dir=1;
 				}
 
 			}
 
-		J_element[i].Permit_done=0;
-		J_element[i].Poshorstnost=false;
-		J_element[i].JunctPos=1;
+
+		J_element.Permit_done=0;
+		J_element.Poshorstnost=false;
+		J_element.JunctPos=1;
 
 
 		GSTS_Initing=j_list[i].BeginTrackSearch(true);
@@ -612,34 +726,40 @@ thread void InitJunctions_All()
 			J_obj_name = MO_arr[0].GetAsset().GetConfigSoup().GetNamedTag("username");
 			Str.ToUpper(J_obj_name);
 			if(J_obj_name[J_obj_name.size()-2,]=="_L" or J_obj_name[J_obj_name.size()-2,]==" L" or J_obj_name[J_obj_name.size()-3,J_obj_name.size()-1]=="_L")
-				J_element[i].directionF=0;
+				J_element.directionF=0;
 			else
-				J_element[i].directionF=2;
+				J_element.directionF=2;
 			}
 		else
-			J_element[i].directionF=2;
+			J_element.directionF=2;
 
-		if(BSJunctionLib.Find(j_list[i].GetName(),false)>=0)
+
+
+		if(add_element)
 			{
-			string s34="rename junction "+j_list[i].GetName();
-			Interface.Exception(s34);
-			return;
+			if(BSJunctionLib.N+10>BSJunctionLib.DBSE.size())
+				BSJunctionLib.UdgradeArraySize(20+2*BSJunctionLib.DBSE.size());
+
+			BSJunctionLib.AddElement((string)(j_list[i].GetName()),(cast<GSObject>(J_element)));
+
+
 			}
-
-
-		
-		BSJunctionLib.AddElement((string)(j_list[i].GetName()),(cast<GSObject>(J_element[i])));
 		}
 
 	IsInited=true;
 
+
 	cache2.Clear();
 	cache2.Copy(ToSoupJL());
+
+
+	MO_arr[0,4] = null;
+
 
 	if(junct_err_string!="")
 		{
 
-		junct_err_string = ST1.GetString("junct_err_info")+junct_err_string;
+		junct_err_string = ST1.GetString("junct_err_info")+ ST1.GetString("err_numb") +err_numb+"<br><br>" +junct_err_string;
 
 		Br_mode = true;
 		MainShowSignals();
@@ -650,7 +770,9 @@ thread void InitJunctions_All()
 
 	Junct_init = false;
 
-	PostMessage(me,"Refresh","stop",0.0);
+	PostMessage(me,"Refresh","now",0);
+	if(sub_browser)
+		PropertyBrowserRefresh(sub_browser);
 	}
 
 
@@ -665,36 +787,38 @@ Soup ToSoupJL()
 
 	for(i=0;i<BSJunctionLib.N;i++)
 		{
-		J_element=cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object);
 
-		if(J_element.back)
-			{
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".back",(J_element.back).GetName());
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".back_dir",J_element.back_dir);
-			}
+			J_element=cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object);
 
-		if(J_element.frontLeft)
-			{
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontLeft",(J_element.frontLeft).GetName());
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontLeft_dir",J_element.frontLeft_dir);
-			}
+			if(J_element.back)
+				{
+				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".back",(J_element.back).GetName());
+				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".back_dir",J_element.back_dir);
+				}
 
-		if(J_element.frontRight)
-			{
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontRight",(J_element.frontRight).GetName());
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontRight_dir",J_element.frontRight_dir);
-			}
+			if(J_element.frontLeft)
+				{
+				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontLeft",(J_element.frontLeft).GetName());
+				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontLeft_dir",J_element.frontLeft_dir);
+				}
 
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".OldDirection",J_element.OldDirection);
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".directionF",J_element.directionF);
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Permit_done",J_element.Permit_done);
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Poshorstnost",J_element.Poshorstnost);
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".JunctPos",J_element.JunctPos);
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".PrevJunction",J_element.PrevJunction);
-		sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".LinkedSignal",J_element.LinkedSignal);
+			if(J_element.frontRight)
+				{
+				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontRight",(J_element.frontRight).GetName());
+				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontRight_dir",J_element.frontRight_dir);
+				}
+
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".OldDirection",J_element.OldDirection);
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".directionF",J_element.directionF);
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Permit_done",J_element.Permit_done);
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Poshorstnost",J_element.Poshorstnost);
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".JunctPos",J_element.JunctPos);
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".PrevJunction",J_element.PrevJunction);
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".LinkedSignal",J_element.LinkedSignal);
 
 
-		sp3.SetNamedTag((string)("soup_name_"+i),(string)(BSJunctionLib.DBSE[i].a));
+			sp3.SetNamedTag((string)("soup_name_"+i),(string)(BSJunctionLib.DBSE[i].a));
+			
 		}
 
 
@@ -725,14 +849,16 @@ void FromSoupJL(Soup sp7)
 	string J_name;
 	string temp_string1;
 
+
+	JuctionWithProperties[] J_elements=new JuctionWithProperties[0,size11];
+
 	BSJunctionLib.N=size11;
-
-	JuctionWithProperties[] J_element=new JuctionWithProperties[size11];
-
 
 	for(i=0;i<size11;i++)
 		{
-		J_element[i]=new JuctionWithProperties();
+		J_elements[i] = new JuctionWithProperties();
+
+		JuctionWithProperties J_element=J_elements[i];
 		
 		J_name=sp7.GetNamedTag((string)("soup_name_"+i));
 
@@ -740,42 +866,42 @@ void FromSoupJL(Soup sp7)
 		
 		temp_string1=sp7.GetNamedTag(J_name+".back");
 		if(temp_string1!="")
-			J_element[i].back = cast<MapObject>Router.GetGameObject(temp_string1);
+			J_element.back = cast<MapObject>Router.GetGameObject(temp_string1);
 		else
-			J_element[i].back = null;
-		J_element[i].back_dir =(int) sp7.GetNamedTagAsInt(J_name+".back_dir",1);
+			J_element.back = null;
+		J_element.back_dir =(int) sp7.GetNamedTagAsInt(J_name+".back_dir",1);
 
 
 		temp_string1=sp7.GetNamedTag(J_name+".frontLeft");
 		if(temp_string1!="")
-			J_element[i].frontLeft = cast<MapObject>Router.GetGameObject(temp_string1);
+			J_element.frontLeft = cast<MapObject>Router.GetGameObject(temp_string1);
 		else
-			J_element[i].frontLeft = null;
-		J_element[i].frontLeft_dir =  sp7.GetNamedTagAsInt(J_name+".frontLeft_dir",1);
+			J_element.frontLeft = null;
+		J_element.frontLeft_dir =  sp7.GetNamedTagAsInt(J_name+".frontLeft_dir",1);
 
 
 		temp_string1=sp7.GetNamedTag(J_name+".frontRight");
 		if(temp_string1!="")
-			J_element[i].frontRight = cast<MapObject>Router.GetGameObject(temp_string1);
+			J_element.frontRight = cast<MapObject>Router.GetGameObject(temp_string1);
 		else
-			J_element[i].frontRight = null;
-		J_element[i].frontRight_dir = sp7.GetNamedTagAsInt(J_name+".frontRight_dir",1);
+			J_element.frontRight = null;
+		J_element.frontRight_dir = sp7.GetNamedTagAsInt(J_name+".frontRight_dir",1);
 
 		
-		J_element[i].OldDirection = sp7.GetNamedTagAsInt(J_name+".OldDirection",0);
-		J_element[i].directionF = sp7.GetNamedTagAsInt(J_name+".directionF",0);
-		J_element[i].Permit_done = sp7.GetNamedTagAsInt(J_name+".Permit_done",0); 
-		J_element[i].Poshorstnost = sp7.GetNamedTagAsBool(J_name+".Poshorstnost",false);
-		J_element[i].JunctPos = sp7.GetNamedTagAsInt(J_name+".JunctPos",1); 			
-		J_element[i].PrevJunction = sp7.GetNamedTagAsInt(J_name+".PrevJunction",-1);
-		J_element[i].LinkedSignal = sp7.GetNamedTag(J_name+".LinkedSignal");
+		J_element.OldDirection = sp7.GetNamedTagAsInt(J_name+".OldDirection",0);
+		J_element.directionF = sp7.GetNamedTagAsInt(J_name+".directionF",0);
+		J_element.Permit_done = sp7.GetNamedTagAsInt(J_name+".Permit_done",0); 
+		J_element.Poshorstnost = sp7.GetNamedTagAsBool(J_name+".Poshorstnost",false);
+		J_element.JunctPos = sp7.GetNamedTagAsInt(J_name+".JunctPos",1); 			
+		J_element.PrevJunction = sp7.GetNamedTagAsInt(J_name+".PrevJunction",-1);
+		J_element.LinkedSignal = sp7.GetNamedTag(J_name+".LinkedSignal");
 
 
-		if(PathLib.Find(J_element[i].Permit_done,false)<0)
-			J_element[i].Permit_done =0;
+		if(PathLib.Find(J_element.Permit_done,false)<0)
+			J_element.Permit_done =0;
 		
 		BSJunctionLib.DBSE[i].a =J_name;
-		BSJunctionLib.DBSE[i].Object=cast<GSObject>J_element[i];
+		BSJunctionLib.DBSE[i].Object=cast<GSObject>J_element;
 		
 		}
 
@@ -1070,16 +1196,28 @@ thread void InitStation(int currentStation, bool stop)
 	Soup St_prop = StationProperties.GetNamedSoup(StationProperties.GetNamedTag("station_name_by_ID"+ currentStation)+".svetof_soup");
 
 
+	int qq = 2;
+
+
 
 	for(i=0;i<N;i++)
 		{
-		part_of_st=" "+(string)(i*100/N)+"%";
+		
 
 		if(St_prop.GetNamedTagAsInt("sv_type^"+i,0)&(2+4+8))
 			{
 			MakeAllPathsFromSignal(currentStation,i);
+			
+			qq++;
 
-			PostMessage(me,"Refresh","now",0.1);
+			if(qq>2)
+				{
+				qq = 0;
+				part_of_st=" "+(string)(i*100/N)+"%";
+				PostMessage(me,"Refresh","now",0.1);
+				if(sub_browser)
+					PropertyBrowserRefresh(sub_browser);
+				}
 
 			Sleep(0.3);
 			}
@@ -1091,7 +1229,12 @@ thread void InitStation(int currentStation, bool stop)
 	Path_init = false;
 
 	if(stop)
-		PostMessage(me,"Refresh","stop",0.0);
+		{
+		PostMessage(me,"Refresh","now",0.0);
+
+		if(sub_browser)
+			PropertyBrowserRefresh(sub_browser);
+		}
 	}
 
 
@@ -1116,8 +1259,10 @@ thread void InitPath_All()
 			Sleep(0.5);
 
 		}
-	PostMessage(me,"Refresh","stop",0.0);
+	PostMessage(me,"Refresh","now",0.0);
 
+	if(sub_browser)
+		PropertyBrowserRefresh(sub_browser);
 	}
 
 
@@ -1130,9 +1275,19 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 
 
 	Soup sv_sp= StationProperties.GetNamedSoup(ST_name +".svetof_soup");
-	Soup sp1= sv_sp.GetNamedSoup("sv_^"+SignalId+"^"+pathN);
 
+	Soup sp1=sv_sp.GetNamedSoup("sv_^"+SignalId+"^"+pathN);
+	
 	string curr_dst=sp1.GetNamedTag("object_ending");
+
+
+	bool span_path = false;
+
+	string[] tookens= Str.Tokens(curr_dst,"@");
+	if(tookens.size()==2)
+		span_path = true;
+
+	tookens[0,tookens.size()]=null;
 
 
 	zxSignal sign1 = cast<zxSignal>(Router.GetGameObject(   sv_sp.GetNamedTag("sv_n^"+SignalId)   ) );
@@ -1145,12 +1300,8 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 
 	string s7564;
 
-//s7564="direction "+dir2+" Lid "+JunctLghtId;
-//Interface.Log(s7564);
 
-
-
-	reset_jun=true;
+//	reset_jun=true;
 
 	int SizeOfPaths=sv_sp.GetNamedTagAsInt("sv_paths_number^"+SignalId,-1);
 
@@ -1164,13 +1315,10 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 	for(k=0;k<SizeOfPaths;k++) 
 		{
 		Soup Old_sp=sv_sp.GetNamedSoup("sv_^"+SignalId+"^"+k);
-		if(Old_sp.GetNamedTag("object_ending") == curr_dst)
+		dst_name=Old_sp.GetNamedTag("object_ending");
+
+		if(dst_name == curr_dst)
 			{
-
-//			s7564="main id1 = "+curr_dst;
-//			Interface.Log(s7564);
-
-
 			
 			int JunctionsNumber2=Old_sp.GetNamedTagAsInt("NumberOfObjects",0);
 			i=0;
@@ -1186,27 +1334,29 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 				i++;	
 				}
 
-			if(Str.Tokens(  sp1.GetNamedTag("object_ending"),"@" ).size()==2)
-				dst_name= Str.Tokens(  sp1.GetNamedTag("object_ending"),"@" )[0];
-			else
-				dst_name=sp1.GetNamedTag("object_ending");
-
-
-	//		s7564="main name = "+dst_name;
-	//		Interface.Log(s7564);
-
-	
+				
 			GSTS1=(cast<Trackside>sign1).BeginTrackSearch(true);
 
-			MO=GSTS1.SearchNext();
+			MO=sign1;
+
+			bool w_end = false;
 			
-			while(MO and MO.GetProperties().GetNamedTag("privateName") != dst_name)
+			while(MO and !w_end )
+				{
 				MO=GSTS1.SearchNext();
+				if(MO and MO.isclass(zxSignal) )
+					{
+					zxSignal temp1 = cast<zxSignal>MO;
+
+					if(span_path and (curr_dst == (temp1.privateName+"@"+temp1.stationName)))
+						w_end=true;
+
+					if(!span_path and (curr_dst == temp1.privateName))
+						w_end=true;						
+					}
+				}
 				
 			lengthA[lenA_num]=GSTS1.GetDistance();
-
-			//s7564="main dist = "+lengthA[lenA_num];
-			//Interface.Log(s7564);
 
 			Id_A[lenA_num]=k;
 
@@ -1230,100 +1380,56 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 			}
 		}			
 
-	Soup sp2;
+	int q = 0;
 
-
-//			s7564="best = "+best_id+" dist = "+best_d;
-//			Interface.Log(s7564);
-
-
-
+	
 	for(k=0;k<lenA_num;k++)
 		{
+		string sv_1name="sv_^"+SignalId+"^"+Id_A[k];
+
+
+
 		if(Id_A[k] == best_id)
 			{
-			sp1=Constructors.NewSoup();
-			sp2=Constructors.NewSoup();
 
-			sp1.Copy(StationProperties.GetNamedSoup(ST_name +".svetof_soup"));
-
-			string sv_1name="sv_^"+SignalId+"^"+Id_A[k];
-
-			sp2.Copy(sp1.GetNamedSoup(sv_1name));
-
-			sp2.SetNamedTag("alternative_r",false);
-
-			sp1.SetNamedSoup(sv_1name,sp2);
-
-			StationProperties.SetNamedSoup(ST_name +".svetof_soup",sp1);
-
-
-//			s7564="setted = "+Id_A[k];
-//			Interface.Log(s7564);
-
-
-
+	
 			}
 		else
 			{
-			Soup sp1=Constructors.NewSoup();
+			(sv_sp.GetNamedSoup(sv_1name)).Clear();
 
-			sp1.Copy(StationProperties.GetNamedSoup(ST_name +".svetof_soup"));
+			sv_sp.RemoveNamedTag(sv_1name);
 
-			string sv_1name="sv_^"+SignalId+"^"+Id_A[k];
+			for(i=Id_A[k]+1;i<SizeOfPaths;i++)
+				{
+				Soup temp_soup1 = sv_sp.GetNamedSoup("sv_^"+SignalId+"^"+i);
+				sv_sp.SetNamedSoup( "sv_^"+SignalId+"^"+(i-1) , temp_soup1);
+				}
 
-			sp1.RemoveNamedTag(sv_1name);
+			sv_sp.RemoveNamedTag( "sv_^"+SignalId+"^"+(SizeOfPaths-1) );
 
-//			s7564="deletted = "+Id_A[k];
-//			Interface.Log(s7564);
 
-			StationProperties.SetNamedSoup(ST_name +".svetof_soup",sp1);
-			}
+			if( Id_A[k] < best_id )
+				best_id--;
+
+
+			for(j=k;j<lenA_num;j++)
+				{
+				if( Id_A[j] > Id_A[k] )
+					Id_A[j]--;
+				}
+
+
+			SizeOfPaths--;
+			}	
+
+		sv_1name=null;
 		}			
 
 
-	int delta1=0;
 
 
-
-	sp1=Constructors.NewSoup();
-
-	sp1.Copy(StationProperties.GetNamedSoup(ST_name +".svetof_soup"));
-	
-	for(k=0;k<SizeOfPaths;k++) 
-		{
-		sp2=Constructors.NewSoup();
-
-		string sv_1name="sv_^"+SignalId+"^"+k;
-
-		if(sp1.GetNamedSoup(sv_1name).GetNamedTag("object_ending")!=""    )
-			{
-			sp2.Copy(sp1.GetNamedSoup(sv_1name));
-			sv_1name="sv_^"+SignalId+"^"+(int)(k-delta1);
-			sp1.SetNamedSoup(sv_1name,sp2);
-
-//			s7564="OK = "+sv_1name;
-//			Interface.Log(s7564);
-
-
-
-			}
-		else
-			{
-			delta1++;
-
-//			s7564="delta = "+delta1;
-//			Interface.Log(s7564);
-
-			}
-		}
-
-
-
-	sp1.SetNamedTag("sv_paths_number^"+SignalId,(SizeOfPaths-delta1));
-
-	StationProperties.SetNamedSoup(ST_name +".svetof_soup",sp1);
-			
+	sv_sp.SetNamedTag("sv_paths_number^"+SignalId,SizeOfPaths);
 
 	return true;
 	}
@@ -1344,13 +1450,13 @@ thread void DeletePathSignal(int station, int sign_id)
 		if(i % 10 == 0)
 			Sleep(0.01);
 		}
-
+	ResetJunctions();
 
 	}
 
 
 
-thread void DeletePathStation(int station, bool stop)
+thread void DeletePathStation(int station, bool stop, bool reset)
 	{
 	Path_delete_init = true;
 
@@ -1368,7 +1474,7 @@ thread void DeletePathStation(int station, bool stop)
 		int SizeOfPaths=sv_sp.GetNamedTagAsInt("sv_paths_number^"+j,-1);
 
 
-		part_of_st=" "+(string)(j*100/svetof_numb)+"%";
+		
 
 
 
@@ -1376,10 +1482,13 @@ thread void DeletePathStation(int station, bool stop)
 			{
 			if( !DeleteLongAltPaths(ST_name, j, i) )
 				i++;
-			if(i % 10 == 0)
+			if(i % 100 == 0)
 				{
-				PostMessage(me,"Refresh","now",0.05);
-				Sleep(0.01);
+				part_of_st=" "+(string)(j*100/svetof_numb)+"%";
+				PostMessage(me,"Refresh","now",0);
+				if(sub_browser)
+					PropertyBrowserRefresh(sub_browser);
+				Sleep(0.1);
 				}
 			}
 		}
@@ -1387,8 +1496,15 @@ thread void DeletePathStation(int station, bool stop)
 
 	Path_delete_init = false;
 
+	if(reset)
+		ResetJunctions();
+
 	if(stop)
-		PostMessage(me,"Refresh","stop",0.0);
+		{
+		PostMessage(me,"Refresh","now",0.0);
+		if(sub_browser)
+			PropertyBrowserRefresh(sub_browser);
+		}
 	}
 
 
@@ -1404,7 +1520,7 @@ thread void DeleteLongPaths()
 		{
 		currentStation = i;
 
-		DeletePathStation(currentStation, false);
+		DeletePathStation(currentStation, false,false);
 
 		Sleep(0.1);
 
@@ -1412,8 +1528,11 @@ thread void DeleteLongPaths()
 			Sleep(0.5);
 
 		}
-	PostMessage(me,"Refresh","stop",0.0);
 
+	ResetJunctions();
+	PostMessage(me,"Refresh","now",0.0);
+	if(sub_browser)
+		PropertyBrowserRefresh(sub_browser);
 	}
 
 
@@ -1583,20 +1702,6 @@ public void LinkPropertyValue2(string propertyID)
         {
         if(propertyID == "seachforjunctions")
         	{
-		if(reset_jun)
-			{
-			int i;
-			int N=BSJunctionLib.N;
-			int dir1;
-			for(i=0;i<N;i++)
-				{
-				dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).OldDirection;
-				(cast<Junction>Router.GetGameObject(BSJunctionLib.DBSE[i].a)).SetDirection(dir1);	
-				}
-
-
-			reset_jun = false;
-			}
 		InitJunctions_All();
            	}
 	else if(propertyID == "err_junctions")
@@ -1638,7 +1743,7 @@ public void LinkPropertyValue2(string propertyID)
 		if(tookens[0]=="station_d")
 			{
 			currentStation=Str.ToInt(tookens[1]);
-			DeletePathStation(currentStation, true);
+			DeletePathStation(currentStation, true,true);
 			}
 		if(tookens[0]=="svetofor+p")	
 			{
@@ -1766,51 +1871,6 @@ public void SetProperties(Soup soup)
 
 
 
-thread void BrowserRefresher(Browser browser)
-	{
-	Is_refresh = true;
-
-	PostMessage(me,"Refresh","stop2",0.1);
-
-	wait()
-		{
-		on "Refresh","now":
-			{
-			string html = GetDescriptionHTML();
-
-			browser.LoadHTMLString(browser.GetAsset(), html);
-
-			continue;
-			}
-
-		on "Refresh","stop":
-			{
-			string html = GetDescriptionHTML();
-
-			browser.LoadHTMLString(browser.GetAsset(), html);
-
-			if (m_propertyObjectHandler)
-				m_propertyObjectHandler.RefreshBrowser(browser);
-
-			if( Junct_init or Sign_init or Path_init or Path_delete_init )
-				continue;
-
-			}
-
-		on "Refresh","stop2":
-			{
-			if( Junct_init or Sign_init or Path_init or Path_delete_init )
-				continue;
-
-			}
-
-		}
-
-
-	Is_refresh = false;
-
-	}
-
 
 
 
@@ -1818,9 +1878,9 @@ public void PropertyBrowserRefresh(Browser browser)
 	{
 	inherited(browser);
 
-	if(!Is_refresh )
-		BrowserRefresher(browser);	
+	sub_browser = browser;
 	}
+
 
 
 

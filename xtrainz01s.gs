@@ -21,12 +21,16 @@ class BinarySortedArrayS
 	public void UdgradeArraySize(int NewN )			// мастер предварительного выделения места массиву
 		{
 		int i;
+		int old_size = DBSE.size();
+
 		BinarySortedElementS[] DBSE2= new BinarySortedElementS[NewN];
 
-		for(i=0;i<N;i++)			// пересохраняем старый массив
+		for(i=0;i<old_size;i++)			// пересохраняем старый массив
 			DBSE2[i]=DBSE[i];
 
-		for(i=N;i<NewN;i++)
+
+
+		for(i=old_size;i<NewN;i++)
 			DBSE2[i]=new BinarySortedElementS();
 				
 		DBSE=DBSE2; 
@@ -117,8 +121,8 @@ class BinarySortedArrayS
 				
 		if(N==0)
 			{
+			UdgradeArraySize(10);
 			N=1;
-			DBSE[0]=new BinarySortedElementS();
 			DBSE[0].a=Name;
 			DBSE[0].Object=NObject;
 			return true;
@@ -157,6 +161,9 @@ class BinarySortedArrayS
 		int t = Find(a,false);
 		if(t>=0)
 			{
+			DBSE[t].a=null;
+			DBSE[t].Object=null;
+
 			int i;
 			for(i=t;i<N-1;i++)
 				{
@@ -164,6 +171,9 @@ class BinarySortedArrayS
 				DBSE[i].Object=DBSE[i+1].Object;
 				}
 			N--;
+
+			DBSE[N].a=null;
+			DBSE[N].Object=null;
 			}	
 		}
 
@@ -172,6 +182,9 @@ class BinarySortedArrayS
 		
 		if(a>=0)
 			{
+			DBSE[a].a=null;
+			DBSE[a].Object=null;
+
 			int i;
 			for(i=a;i<N-1;i++)
 				{
@@ -179,6 +192,9 @@ class BinarySortedArrayS
 				DBSE[i].Object=DBSE[i+1].Object;
 				}
 			N--;
+
+			DBSE[N].a=null;
+			DBSE[N].Object=null;
 			}	
 		}
 
@@ -202,12 +218,16 @@ class BinarySortedArrayS2
 	public void UdgradeArraySize(int NewN )			// мастер предварительного выделения места массиву
 		{
 		int i;
+		int old_size = DBSE.size();
+
 		BinarySortedElementS[] DBSE2= new BinarySortedElementS[NewN];
 
-		for(i=0;i<N;i++)			// пересохраняем старый массив
+		for(i=0;i<old_size;i++)			// пересохраняем старый массив
 			DBSE2[i]=DBSE[i];
 
-		for(i=N;i<NewN;i++)
+
+
+		for(i=old_size;i<NewN;i++)
 			DBSE2[i]=new BinarySortedElementS();
 				
 		DBSE=DBSE2; 
@@ -298,8 +318,8 @@ class BinarySortedArrayS2
 				
 		if(N==0)
 			{
+			UdgradeArraySize(10);
 			N=1;
-			DBSE[0]=new BinarySortedElementS();
 			DBSE[0].a=Name;
 			DBSE[0].Object=NObject;
 			return true;
@@ -338,6 +358,11 @@ class BinarySortedArrayS2
 		int t = Find(a,false);
 		if(t>=0)
 			{
+			DBSE[t].a=null;
+			DBSE[t].Object=null;
+
+
+
 			int i;
 			for(i=t;i<N-1;i++)
 				{
@@ -345,6 +370,9 @@ class BinarySortedArrayS2
 				DBSE[i].Object=DBSE[i+1].Object;
 				}
 			N--;
+
+			DBSE[N].a=null;
+			DBSE[N].Object=null;
 			}	
 		}
 
@@ -353,6 +381,10 @@ class BinarySortedArrayS2
 		
 		if(a>=0)
 			{
+			DBSE[a].a=null;
+			DBSE[a].Object=null;
+
+
 			int i;
 			for(i=a;i<N-1;i++)
 				{
@@ -360,6 +392,9 @@ class BinarySortedArrayS2
 				DBSE[i].Object=DBSE[i+1].Object;
 				}
 			N--;
+
+			DBSE[N].a=null;
+			DBSE[N].Object=null;
 			}	
 		}
 

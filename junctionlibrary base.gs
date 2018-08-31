@@ -7,13 +7,13 @@ include "zx_specs.gs"
 class JuctionWithProperties isclass GSObject
 {
 
-public MapObject back;			//объект сзади
+public MapObject back=null;		//объект сзади
 public int back_dir;			//0 - направление "обратное", 1- направление "прямое", -1 - это стрелка (направление определять по свойствам)
 
-public MapObject frontLeft;		//объект впереди, по стрелке слева
+public MapObject frontLeft=null;	//объект впереди, по стрелке слева
 public int frontLeft_dir;
 
-public MapObject frontRight;		//объект впереди, по стрелке слева
+public MapObject frontRight=null;	//объект впереди, по стрелке слева
 public int frontRight_dir;
 
 public int directionF;			//отклонение : 0 - налево, 2 - направо
@@ -84,7 +84,7 @@ public Soup StationProperties;
 public BinarySortedArrayS2 PathLib;
 
 
-BinarySortedArrayS JunctionsOfStation;
+//BinarySortedArrayS JunctionsOfStation;
 
 public Soup cache2;
 
@@ -204,20 +204,26 @@ public int FindJunctionPropertiesId(Junction Current)
 
 public MapObject MakeSearchByJunctions(int JunctionPropId, MapObject previous, int J_direction )
 	{
-	JuctionWithProperties JWP = cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object);
 
-	if(JWP.frontLeft==previous or JWP.frontRight==previous)
-		return JWP.back;
 
-	if(JWP.back == previous)
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous or (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight==previous)
 		{
-		if(J_direction == Junction.DIRECTION_LEFT)
-			return JWP.frontLeft;
-		else
-			return JWP.frontRight;
+		return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back;
 		}
 
-	return JWP.back;
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back == previous)
+		{
+		if(J_direction == Junction.DIRECTION_LEFT)
+			{
+			return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft;
+			}
+		else
+			{
+			return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight;
+			}
+		}
+
+	return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back;
 	}
 
 
@@ -225,28 +231,26 @@ public MapObject MakeSearchByJunctions(int JunctionPropId, MapObject previous, i
 
 public int GetDirectionByJunctions(int JunctionPropId, MapObject previous, int J_direction )
 	{
-	JuctionWithProperties JWP = cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object);
+	
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous or (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight==previous)
+		return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back_dir;
 
-	if(JWP.frontLeft==previous or JWP.frontRight==previous)
-		return JWP.back_dir;
-
-	if(JWP.back == previous)
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back == previous)
 		{
 		if(J_direction == Junction.DIRECTION_LEFT)
-			return JWP.frontLeft_dir;
+			return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft_dir;
 		else
-			return JWP.frontRight_dir;
+			return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight_dir;
 		}
 
-	return JWP.back_dir;
+	return (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back_dir;
 	}
 
 
 public bool ThisJPoShorstn(int JunctionPropId, MapObject previous)
 	{
-	JuctionWithProperties JWP = cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object);
-
-	if(JWP.frontLeft==previous or JWP.frontRight==previous)
+	
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous or (cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight==previous)
 		return true;
 	return false;
 
@@ -257,12 +261,11 @@ public bool ThisJPoShorstn(int JunctionPropId, MapObject previous)
 
 public int TrueJdir(int JunctionPropId, MapObject previous)
 	{
-	JuctionWithProperties JWP = cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object);
-
-	if(JWP.frontLeft==previous)
+	
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontLeft==previous)
 		return 0;
 
-	if(JWP.frontRight==previous)
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).frontRight==previous)
 		return 2;
 
 	return -1;
@@ -282,7 +285,7 @@ public int GetJunctionPermit(int JunctionPropId)
 
 
 
-bool CheckForTheLastestJunctionFromTheEnd(Soup PathSoup)
+bool CheckForTheLastestJunctionFromTheEnd(Soup PathSoup, BinarySortedArrayS JunctionsOfStation)
 	{
 	if(!PathSoup)
 		return true;
@@ -319,10 +322,15 @@ bool CheckForTheLastestJunctionFromTheEnd(Soup PathSoup)
 					i++;
 					}
 
+				tokens[0,tokens.size()]=null;
+
 				return true;
 				}
 		i--;
 		}
+
+	tokens[0,tokens.size()]=null;
+
 	return false;
 	}
 
@@ -331,17 +339,19 @@ bool CheckForTheLastestJunctionFromTheEnd(Soup PathSoup)
 public void MakeAllPathsFromSignal(int stationID, int SignalId)
 	{
 
-	JunctionsOfStation=new BinarySortedArrayS();
+	BinarySortedArrayS JunctionsOfStation=new BinarySortedArrayS();
 
 	JunctionsOfStation.UdgradeArraySize(20);
+
 
 	string ST_Name1= StationProperties.GetNamedTag("station_name_by_ID"+ stationID);
 
 	string temp121=StationProperties.GetNamedSoup(ST_Name1 +".svetof_soup").GetNamedTag("sv_n^"+SignalId);
 
+	Soup sv_sp = StationProperties.GetNamedSoup(ST_Name1 +".svetof_soup");
+
 
 	Signal sign1 = cast<Signal>(Router.GetGameObject(temp121));
-
 
 	Soup tempsoup;
 	
@@ -381,11 +391,25 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 	int q=0;
 	bool result1=false;
 	
-	string[] tok99;
+
+
+	int PathOldNumb = sv_sp.GetNamedTagAsInt("sv_paths_number^"+SignalId,0);
+
+	for(j=0;j<PathOldNumb;j++) 
+		sv_sp.GetNamedSoup("sv_^"+SignalId+"^"+j).Clear();
+
 
 	
-	while(CheckForTheLastestJunctionFromTheEnd(PathSoup1) and NumberOfPaths<max_path_number)
+	while(CheckForTheLastestJunctionFromTheEnd(PathSoup1, JunctionsOfStation) and NumberOfPaths<max_path_number)
 		{
+		if(PathSoup1)
+			{
+			if(PathSoup1.GetNamedTag("object_ending")!="")
+				PathSoup1.Clear();
+			}
+		else
+			PathSoup1=Constructors.NewSoup();
+
 		Previous=sign1;
 		GSTS1 = sign1.BeginTrackSearch(true);
 		MO=GSTS1.SearchNext();
@@ -394,7 +418,6 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 			TempStrDir = GSTS1.GetFacingRelativeToSearchDirection();
 
 		NumberOfObjects=0;
-		PathSoup1=Constructors.NewSoup();
 
 		while(MO and !OtherStation)
 			{
@@ -415,6 +438,10 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 					if(TempJunction)
 						{
 						JunctionID1=FindJunctionPropertiesId(TempJunction);
+
+						if(JunctionID1 < 0)
+							Interface.Exception("Junction '"+MO.GetName()+"' was not found in database");
+
 						Junct_name2= BSJunctionLib.DBSE[JunctionID1].a;
 
 						//s7564="name "+Junct_name2+" id= "+JunctionID1;
@@ -425,7 +452,7 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 						if(JunctLghtId<0)
 							{
 							if(JunctionsOfStation.N+20>JunctionsOfStation.DBSE.size())
-								JunctionsOfStation.UdgradeArraySize(JunctionsOfStation.DBSE.size()*5);
+								JunctionsOfStation.UdgradeArraySize(20+2*JunctionsOfStation.DBSE.size());
 							
 
 							LightJunctionObject LJO=new LightJunctionObject();
@@ -588,7 +615,7 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 							TempStrDir = GSTS1.GetFacingRelativeToSearchDirection();
 							}
 
-						if(GSTS1.GetDistance()>4000 and MO.isclass(Trackside) and !MO.isclass(Vehicle) and !MO.isclass(Junction))
+						if(GSTS1.GetDistance()>4000 and MO and MO.isclass(Trackside) and !MO.isclass(Vehicle) and !MO.isclass(Junction))
 							{
 							GSTS1=(cast<Trackside>MO).BeginTrackSearch(TempStrDir);
 							}
@@ -601,9 +628,6 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 		OtherStation=false;
 
 
-		tempsoup=Constructors.NewSoup();
-		tempsoup.Copy(StationProperties.GetNamedSoup(ST_Name1 +".svetof_soup"));
-
 
 		int k=0;
 		bool notExist=true;
@@ -612,17 +636,19 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 
 		if(PathSoup1.GetNamedTag("object_ending")!="")
 			{
-			tempsoup.SetNamedSoup("sv_^"+SignalId+"^"+NumberOfPaths,PathSoup1);
+
+
+			sv_sp.SetNamedSoup("sv_^"+SignalId+"^"+NumberOfPaths,PathSoup1);
+
 			NumberOfPaths++;
 
 
 			if(NumberOfPaths > max_path_number)
 				Interface.Exception( GetAsset().GetStringTable().GetString("toomuchpaths") );
-			
+
 			}
 
 
-		StationProperties.SetNamedSoup(ST_Name1 +".svetof_soup",tempsoup);
 
 
 		for(j=0;j<JunctionsOfStation.N;j++)									// обнуляем память о наличии стрелок в маршруте
@@ -631,12 +657,18 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 		}
 
 
+	for(j=0;j<JunctionsOfStation.N;j++)									// обнуляем память о наличии стрелок в маршруте
+		{
+		JunctionsOfStation.DBSE[j].Object = null;
+		JunctionsOfStation.DBSE[j] = null;
+		}
 
-	tempsoup=Constructors.NewSoup();
-	tempsoup.Copy(StationProperties.GetNamedSoup(ST_Name1 +".svetof_soup"));
-	tempsoup.SetNamedTag("sv_paths_number^"+SignalId,NumberOfPaths);
-	StationProperties.SetNamedSoup(ST_Name1 +".svetof_soup",tempsoup);
 
+	JunctionsOfStation.N = 0;
+	JunctionsOfStation.DBSE[0, (JunctionsOfStation.DBSE.size()) ] = null;
+	JunctionsOfStation = null;
+
+	sv_sp.SetNamedTag("sv_paths_number^"+SignalId,NumberOfPaths);
 	}
 
 
@@ -1006,6 +1038,14 @@ void RemovePath(int PathName)
 					other_path = true;
 
 				}
+
+			if(GSTS1.GetDistance()>4000 and MO.isclass(Trackside) and !MO.isclass(Vehicle) and !MO.isclass(Junction))
+				{
+				GSTS1=(cast<Trackside>MO).BeginTrackSearch( GSTS1.GetFacingRelativeToSearchDirection() );
+				}
+
+
+
 			MO=GSTS1.SearchNext();
 			}
 
@@ -1183,7 +1223,7 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 					bool dir2 = (bool)str_dir;
 
 
-					while(MO1 and !MO1.isclass(Junction) and !(MO1.isclass(Signal)  and !dir2 and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
+					while(MO1 and !MO1.isclass(Junction) and !(MO1.isclass(zxSignal)  and !dir2 and ( (cast<zxSignal>MO1).Type & (2+4+8) )  ))
 						{
 						MO1=GSTS.SearchNext();
 						dir2 = GSTS.GetFacingRelativeToSearchDirection();
@@ -1255,7 +1295,7 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 				bool any_train = false;
 			
 
-				while(MO1 and !MO1.isclass(Junction)  and !(MO1.isclass(Signal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
+				while(MO1 and !MO1.isclass(Junction)  and !(MO1.isclass(zxSignal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( (cast<zxSignal>MO1).Type & (2+4+8) )  ))
 					{
 					MO1=GSTS.SearchNext();
 	
@@ -1361,6 +1401,8 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 
 	return false;
 	}
+
+
 
 
 
@@ -1555,8 +1597,8 @@ public bool CheckPathIsFree(string ST_name, int SignalId, int pathN)
 
 	PathClass PCS1=new PathClass();
 			
-	if(PathLib.N< (CurrentPath+30))
-		PathLib.UdgradeArraySize(PathLib.N*2);
+	if(PathLib.N+20 > PathLib.DBSE.size())
+		PathLib.UdgradeArraySize(20+ 2*PathLib.DBSE.size());
 
 	PathLib.AddElement(MyCurrentPath,cast<GSObject>PCS1);
 
@@ -1586,8 +1628,8 @@ public void SetUsualPath(string ST_name, int SignalId, int pathN, bool Locked)
 
 	PathClass PCS1=new PathClass();
 			
-	if(PathLib.N< (CurrentPath+30))
-		PathLib.UdgradeArraySize(PathLib.N*2);
+	if(PathLib.N+20 > PathLib.DBSE.size())
+		PathLib.UdgradeArraySize(20 + 2*PathLib.DBSE.size());
 
 	PathLib.AddElement(MyCurrentPath,cast<GSObject>PCS1);
 
@@ -1629,8 +1671,8 @@ public void SetLinkedPath(string ST_name, int SignalId, int pathN)
 
 	PathClass PCS1=new PathClass();
 			
-	if(PathLib.N< (CurrentPath+30))
-		PathLib.UdgradeArraySize(PathLib.N*2);
+	if(PathLib.N +20 > PathLib.DBSE.size() )
+		PathLib.UdgradeArraySize(20 + 2*PathLib.DBSE.size());
 
 	PathLib.AddElement(MyCurrentPath,cast<GSObject>PCS1);
 
@@ -1672,6 +1714,171 @@ void PathHander(Message msg)
 		for(i=0;i<L;i++)
 			pathSoup[i]=Constructors.NewSoup();	
 		}
+	}
+
+
+
+public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
+	{
+	JuctionWithProperties JWP = cast<JuctionWithProperties>((BSJunctionLib.DBSE[temp_id]).Object);
+
+
+	GSTrackSearch GSTS;
+	MapObject MO1;
+	MapObject MO0;
+
+
+	MapObject Previous;
+
+	bool str_dir;
+
+
+	
+	if(poshorstn)
+		{
+		//left/right
+
+		if(dir1==0)
+				{
+				MO1=JWP.frontLeft;
+				str_dir=JWP.frontLeft_dir;
+				}							
+			else
+				{
+				MO1=JWP.frontRight;
+				str_dir=JWP.frontRight_dir;
+				}
+			}
+		else
+			{
+			//back
+						
+			MO1=JWP.back;
+			str_dir=JWP.back_dir;
+			}
+
+	if(!MO1)
+		return false;
+
+	MO0 = MO1;	
+
+
+	if(!MO1.isclass(Junction))
+		{
+		GSTS=(cast<Trackside>MO1).BeginTrackSearch((bool)str_dir);
+		
+		bool TempStrDir = str_dir;
+
+
+
+		while(MO1 and !MO1.isclass(Junction))
+			{
+			if( MO1.isclass(Trackside) and MO1.GetName()!="")
+				Previous=MO1;
+
+			MO1=GSTS.SearchNext();
+			TempStrDir = GSTS.GetFacingRelativeToSearchDirection();
+
+			if(!MO1 or MO1.isclass(Vehicle) )
+				return false;	
+			}
+	
+		if(!MO1)
+			return false;
+		}
+	else
+		return false;
+
+	
+	bool poeznoi = true;
+
+	int temp_id2=BSJunctionLib.Find( MO1.GetName() ,false);
+
+
+	int Path_tmp_nmb=(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id2].Object)).Permit_done;
+
+	if(Path_tmp_nmb<=1)
+		return false;
+
+
+	int p_element_n=PathLib.Find(Path_tmp_nmb,false);
+
+	if(p_element_n>=0 and (cast<PathClass>(PathLib.DBSE[p_element_n].Object)).mode>=0)
+		{
+		if((cast<PathClass>(PathLib.DBSE[p_element_n].Object)).mode == 4)
+			poeznoi = false;
+		}
+
+
+
+	
+	if(!poeznoi and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id2].Object)).Poshorstnost == ThisJPoShorstn(temp_id2, Previous)) and ( TrueJdir(temp_id2, Previous) == (cast<Junction>MO1).GetDirection() ) )	//стрелка повёрнута на нас и сонаправлена поиску
+		{
+		GSTS=(cast<Trackside>MO0).BeginTrackSearch(!(bool)str_dir);
+		MO1=MO0;
+		while(MO1 and !MO1.isclass(Junction) )
+			{
+			MO1=GSTS.SearchNext();
+			if(MO1.isclass(Vehicle) )
+				return false;	
+			}
+
+
+
+		GSTS=(cast<Trackside>MO0).BeginTrackSearch(str_dir);
+		MO1=MO0;
+
+
+		bool other_path = false;
+
+
+		while(MO1 and !other_path)
+			{
+
+			if(MO1.isclass(Vehicle) )
+				return false;	
+
+
+			if(MO1.isclass(Trackside) and MO1.GetProperties().GetNamedTagAsBool("zxPath_can_lock",false))
+				{
+				//Interface.Log("obj_founded !!!!");
+				Soup OldProp=MO1.GetProperties();
+				OldProp.SetNamedTag("zxPath_lock",-1);
+				MO1.SetProperties(OldProp);
+				}
+			if(MO1.isclass(Junction))
+				{
+				temp_id=BSJunctionLib.Find( MO1.GetName(),false);
+
+				if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done == Path_tmp_nmb)
+					{
+					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
+					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
+					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
+					(cast<Junction>Router.GetGameObject(BSJunctionLib.DBSE[temp_id].a)).SetDirection(dir1);	
+					}
+				else
+					other_path = true;
+	
+				}
+
+			if(MO1.isclass(zxSignal))
+				{
+				zxSignal zxtemp = cast<zxSignal>MO1;
+				zxtemp.shunt_open = false;
+				zxtemp.UpdateState(0,-1);
+				}
+	
+			MO1=GSTS.SearchNext();
+			}
+
+
+
+		return true;
+		}
+
+	return false;
+
 	}
 
 
@@ -1749,6 +1956,11 @@ void LeavingHandler1(Message msg)
 
 				if(result)
 					{
+
+					if(!poeznoi and pos == 0)
+						RemoveNeighbPath(temp_id, (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost,(cast<Junction>GO).GetDirection() );
+
+
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
 					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
