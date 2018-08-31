@@ -1255,10 +1255,10 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 				bool any_train = false;
 			
 
-				while(!(MO1.isclass(Junction) and  (cast<Junction>MO1) != JN2) and !(MO1.isclass(Signal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
+				while(!MO1.isclass(Junction)  and !(MO1.isclass(Signal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( MO1.GetProperties().GetNamedTagAsInt("GetSignalType()",1) & (2+4+8) )  ))
 					{
 					MO1=GSTS.SearchNext();
-				
+	
 					if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) )
 						any_train = true;	
 					}
@@ -1273,9 +1273,10 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 				}
 			else
 				{
-				while(!(MO1.isclass(Junction) and  (cast<Junction>MO1) != JN2) and !MO1.isclass(Signal))
+				while(!MO1.isclass(Junction) and !MO1.isclass(Signal))
 					{
 					MO1=GSTS.SearchNext();
+
 					if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove) )
 						return true;	
 					}
@@ -1283,12 +1284,41 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 			}
 		else
 			{
-			while( !(MO1.isclass(Junction) and  (cast<Junction>MO1) != JN2) )
+			while( !MO1.isclass(Junction) )
 				{
 				MO1=GSTS.SearchNext();
+
+
 				if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0  or remove) )
 					return true;	
 				}
+			}
+
+		// проверка освобождения ближайших к стрелке участков пути
+
+
+		float min_dist; 
+
+		if(poshorstn)
+			{	
+			GSTS=JN.BeginTrackSearch(JunctionBase.DIRECTION_BACKWARD);
+
+			min_dist = 1;
+			}
+		else	
+			{	
+			GSTS=JN.BeginTrackSearch(dir1);
+
+			min_dist = 48;
+			}
+
+		MO1= cast<MapObject>JN2;
+
+		while(MO1 and GSTS.GetDistance() < (min_dist+30))
+			{
+			MO1=GSTS.SearchNext();
+			if(MO1 and MO1.isclass(Vehicle) and GSTS.GetDistance() < (min_dist+(cast<Vehicle>MO1).GetLength()/2) )
+				return true;	
 			}
 		}
 
@@ -1630,7 +1660,10 @@ void LeavingHandler1(Message msg)
 		if(temp_id<0)
 			return;
 
-		if(msg.minor=="Leave")	
+
+
+
+		if((TrainzScript.GetTrainzVersion() < 3.7 and msg.minor=="Leave") or (TrainzScript.GetTrainzVersion() >= 3.7 and msg.minor=="InnerLeave") )	
 			{
 // разборка маршрута по освобождению стрелки
 
