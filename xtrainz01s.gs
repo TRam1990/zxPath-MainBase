@@ -121,7 +121,8 @@ class BinarySortedArrayS
 				
 		if(N==0)
 			{
-			UdgradeArraySize(10);
+			if(DBSE.size() == 0)
+				UdgradeArraySize(10);
 			N=1;
 			DBSE[0].a=Name;
 			DBSE[0].Object=NObject;
@@ -318,7 +319,8 @@ class BinarySortedArrayS2
 				
 		if(N==0)
 			{
-			UdgradeArraySize(10);
+			if(DBSE.size() == 0)
+				UdgradeArraySize(10);
 			N=1;
 			DBSE[0].a=Name;
 			DBSE[0].Object=NObject;

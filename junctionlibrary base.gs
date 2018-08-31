@@ -422,7 +422,7 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 		while(MO and !OtherStation)
 			{
 			string O_name=MO.GetName();
-			if(O_name!="" and O_name.size()>3 and O_name[0,4]=="stop")
+			if(O_name!="" and   (   (O_name.size()>3 and O_name[0,4]=="stop")  or (TempStrDir and O_name.size()>6 and O_name[0,7]=="dirstop") )   )
 				OtherStation=true;
 			else
 				{
@@ -807,10 +807,16 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 		}
 
 
+	string TempAttachedJunction;
+
+
 	while(i<JunctionsNumber2)
 			{
 			tmpstr2=Str.Tokens(sp1.GetNamedTag("object_"+i),",");
 			temp_id=BSJunctionLib.Find(tmpstr2[0],false);
+
+			if(temp_id == OldJunId)
+				Interface.Exception("Junctions "+BSJunctionLib.DBSE[OldJunId].a+" and "+tmpstr2[0]+" have the same ID. Reinit junctions.");
 							
 			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=Path_nmb;
 
@@ -846,6 +852,11 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 
 				Jn1.SetDirection(Str.ToInt(tmpstr2[1]));
 				}
+
+			TempAttachedJunction = tmpstr2[0];
+
+			tmpstr2[0,tmpstr2.size()]=null;
+
 			i++;	
 			}
 
@@ -892,7 +903,7 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 		if(MO2 and  MO2.isclass(zxSignal) )
 			{
 			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).LinkedSignal = MO2.GetName();
-			(cast<zxSignal>MO2).AttachedJunction = tmpstr2[0];
+			(cast<zxSignal>MO2).AttachedJunction = TempAttachedJunction;
 			}
 		}
 
@@ -1365,7 +1376,12 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 		// проверка освобождения ближайших к стрелке участков пути
 
 
-		float min_dist; 
+		float min_dist;
+
+		float extra_dist = 35;
+
+		if(!poeznoi)
+			extra_dist = 70;
 
 		if(poshorstn)
 			{	
@@ -1382,12 +1398,17 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 
 		MO1= cast<MapObject>JN2;
 
-		while(MO1 and GSTS.GetDistance() < (min_dist+30))
+		while(MO1 and GSTS.GetDistance() < (min_dist+extra_dist) and !MO1.isclass(Vehicle) )
 			{
 			MO1=GSTS.SearchNext();
 			if(MO1 and MO1.isclass(Vehicle) and GSTS.GetDistance() < (min_dist+(cast<Vehicle>MO1).GetLength()/2) )
 				return true;	
 			}
+		if(!poeznoi and remove and (!MO1 or (MO1 and !MO1.isclass(Vehicle))))	// поезд не мог испариться
+			{
+			return true;
+			}
+
 		}
 
 
@@ -1760,7 +1781,9 @@ public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
 	if(!MO1)
 		return false;
 
+
 	MO0 = MO1;	
+	
 
 
 	if(!MO1.isclass(Junction))
@@ -1786,10 +1809,7 @@ public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
 		if(!MO1)
 			return false;
 		}
-	else
-		return false;
 
-	
 	bool poeznoi = true;
 
 	int temp_id2=BSJunctionLib.Find( MO1.GetName() ,false);
@@ -1805,14 +1825,17 @@ public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
 
 	if(p_element_n>=0 and (cast<PathClass>(PathLib.DBSE[p_element_n].Object)).mode>=0)
 		{
+
 		if((cast<PathClass>(PathLib.DBSE[p_element_n].Object)).mode == 4)
+			{
 			poeznoi = false;
+			}
 		}
 
 
 
 	
-	if(!poeznoi and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id2].Object)).Poshorstnost == ThisJPoShorstn(temp_id2, Previous)) and ( TrueJdir(temp_id2, Previous) == (cast<Junction>MO1).GetDirection() ) )	//стрелка повёрнута на нас и сонаправлена поиску
+	if(!poeznoi and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id2].Object)).Poshorstnost == ThisJPoShorstn(temp_id2, Previous)) and (TrueJdir(temp_id2, Previous)<0 or TrueJdir(temp_id2, Previous) == (cast<Junction>MO1).GetDirection() ) )	//стрелка повёрнута на нас и сонаправлена поиску
 		{
 		GSTS=(cast<Trackside>MO0).BeginTrackSearch(!(bool)str_dir);
 		MO1=MO0;
@@ -1841,7 +1864,6 @@ public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
 
 			if(MO1.isclass(Trackside) and MO1.GetProperties().GetNamedTagAsBool("zxPath_can_lock",false))
 				{
-				//Interface.Log("obj_founded !!!!");
 				Soup OldProp=MO1.GetProperties();
 				OldProp.SetNamedTag("zxPath_lock",-1);
 				MO1.SetProperties(OldProp);
@@ -1881,7 +1903,75 @@ public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
 
 	}
 
+thread void xtriggerThread(Trigger trig)
+	{
 
+	GSTrackSearch GSTS;
+	MapObject MO;
+
+	bool end_w = false;
+	
+	int old_path = trig.GetProperties().GetNamedTagAsInt("zxPath_lock");
+
+
+	while(!end_w and trig.GetProperties().GetNamedTagAsInt("zxPath_lock") == old_path )
+		{
+		end_w = true;
+
+		MO = trig;
+
+		GSTS = trig.BeginTrackSearch(true);
+
+		while(MO and !MO.isclass(Signal) and !MO.isclass(Junction))
+			{
+			MO = GSTS.SearchNext();
+			if(MO and MO.isclass(Vehicle))
+				end_w = false;
+			}
+		
+		if(MO and MO.isclass(Junction))
+			{
+			int temp_id=BSJunctionLib.Find(MO.GetName(),false);
+			if(temp_id>=0 and (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done == old_path)
+				end_w = false;
+			}
+
+
+
+		if(end_w)
+			{
+			MO = trig;
+			GSTS = trig.BeginTrackSearch(false);
+
+			while(MO and !MO.isclass(Signal) and !MO.isclass(Junction))
+				{
+				MO = GSTS.SearchNext();
+				if(MO and MO.isclass(Vehicle))
+					end_w = false;
+				}
+
+			if(MO and MO.isclass(Junction))
+				{
+				int temp_id=BSJunctionLib.Find(MO.GetName(),false);
+				if(temp_id>=0 and (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done == old_path)
+					end_w = false;
+				}
+
+			}
+
+		if(!end_w)
+			Sleep(1);
+
+		}
+
+	if(trig.GetProperties().GetNamedTagAsInt("zxPath_lock") != old_path)
+		return;
+
+	Soup OldProp=trig.GetProperties();
+	OldProp.SetNamedTag("zxPath_lock",-1);
+	trig.SetProperties(OldProp);
+
+	}
 
 void LeavingHandler1(Message msg)
 	{
@@ -1991,8 +2081,13 @@ void LeavingHandler1(Message msg)
 		Soup OldProp=(cast<Trigger>GO).GetProperties();
 		if(OldProp.GetNamedTagAsBool("zxPath_can_lock",false))
 			{
-			OldProp.SetNamedTag("zxPath_lock",-1);
-			(cast<Trigger>GO).SetProperties(OldProp);
+			if(TrainzScript.GetTrainzVersion() < 3.7)
+				{
+				OldProp.SetNamedTag("zxPath_lock",-1);
+				(cast<Trigger>GO).SetProperties(OldProp);
+				}
+			else
+				xtriggerThread(cast<Trigger>GO);
 			}
 		}
 	}
