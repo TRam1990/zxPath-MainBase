@@ -1635,7 +1635,10 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 
 			sign1 = cast<zxSignal>(Router.GetGameObject(svetofor_Mname));	
 			if(!sign1)
+				{
+				Interface.Exception("Not found signal with name "+svetofor_Mname);
 				return false;
+				}
 			
 			// проверка занятости самого парка
 
@@ -2143,6 +2146,8 @@ void LeavingHandler1(Message msg)
 
 			if(p_element_n>=0 and (cast<PathClass>(PathLib.DBSE[p_element_n].Object)).mode>=0)
 				{
+				Junction curr_junct = cast<Junction>GO;
+
 
 				bool poeznoi = true;
 
@@ -2164,7 +2169,7 @@ void LeavingHandler1(Message msg)
 					num_jun = 1;
 					}
 
-				bool result_l = Any_Lock(temp_id ,  (cast<Junction>GO).GetDirection() , (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost, pos,num_jun, poeznoi,true);
+				bool result_l = Any_Lock(temp_id ,  curr_junct.GetDirection() , (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost, pos,num_jun, poeznoi,true);
 
 				if(!(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound and 
 				    !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).LastTrainVelDir) // поезд ушёл в обратном направлении, то проверки прекращаются ?
@@ -2209,19 +2214,12 @@ void LeavingHandler1(Message msg)
 							}
 						}
 
-					Interface.Print("old dir "+(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection);
-
-
-					Junction curr_junct = cast<Junction>GO;
 					Permit tmp_permit = curr_junct.RequestPermit(me, (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection);
+					bool permit_state = tmp_permit.IsGranted();
+					tmp_permit.Release();
 
-					if(!tmp_permit.IsGranted())
+					if(!permit_state)
 						{
-						tmp_permit.Release();
-
-						Interface.Print("no permits");
-
-
 						if((msg.major == "ObjectLeftCheck") and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm == Path_tmp_nmb))
 							PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
 						else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
@@ -2231,13 +2229,9 @@ void LeavingHandler1(Message msg)
 							PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = Path_tmp_nmb;
 							}
-
-						
-
 						return;
 						}
 
-					tmp_permit.Release();
 
 
 					processing_junctions.RemoveNamedTag(temp_id);
@@ -2252,10 +2246,6 @@ void LeavingHandler1(Message msg)
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
 					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
 					curr_junct.SetDirection(dir1);	
-
-					Interface.Print("old dir set "+dir1);
-
-
 					
 					}
 				}
