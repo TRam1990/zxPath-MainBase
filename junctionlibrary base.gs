@@ -186,7 +186,7 @@ public void FromSoupPaths(Soup sp7)
 		P_element[i].description = sp7.GetNamedTag(P_name+".description");
 		P_element[i].SignalId = sp7.GetNamedTagAsInt(P_name+".SignalId",0);
 		P_element[i].pathN = sp7.GetNamedTagAsInt(P_name+".pathN",0);
-		P_element[i].linkedpath = sp7.GetNamedTagAsInt(P_name+".linkedpathN",-1);
+		P_element[i].linkedpath = sp7.GetNamedTagAsInt(P_name+".linkedpath",-1);
 
 
 		PathLib.DBSE[i].a =P_name;
@@ -305,8 +305,20 @@ bool CheckForTheLastestJunctionFromTheEnd(Soup PathSoup, BinarySortedArrayS Junc
 			{
 			string str11="can't find "+tokens[0];
 			Interface.Log(str11);
+
+			tokens[0]=null;
+			tokens[1]=null;
+			tokens[2]=null;
+			tokens[0,]=null;
 			}
 		else
+			{
+			tokens[0]=null;
+			tokens[1]=null;
+			tokens[2]=null;
+			tokens[0,]=null;
+
+
 			if(!(cast<LightJunctionObject>(JunctionsOfStation.DBSE[JunctLghtId].Object)).WasInLeft and !(cast<LightJunctionObject>(JunctionsOfStation.DBSE[JunctLghtId].Object)).Poshorstna)
 				{
 				(cast<LightJunctionObject>(JunctionsOfStation.DBSE[JunctLghtId].Object)).WasInLeft=true;
@@ -315,19 +327,21 @@ bool CheckForTheLastestJunctionFromTheEnd(Soup PathSoup, BinarySortedArrayS Junc
 					{
 					tokens= Str.Tokens(PathSoup.GetNamedTag("object_"+i),",");
 					JunctLghtId= JunctionsOfStation.Find(tokens[0],false);
+					tokens[0]=null;
+					tokens[1]=null;
+					tokens[2]=null;
+					tokens[0,]=null;
 
 					(cast<LightJunctionObject>(JunctionsOfStation.DBSE[JunctLghtId].Object)).WasInLeft=false;
 					i++;
 					}
 
-				tokens[0,tokens.size()]=null;
-
 				return true;
 				}
+			}
+
 		i--;
 		}
-
-	tokens[0,tokens.size()]=null;
 
 	return false;
 	}
@@ -742,15 +756,19 @@ int self_state; //состояние
 			if(!span_dir and junct_state)
 				(cast<PathClass>(PathLib.DBSE[i].Object)).self_state=0;
 
-			
+						
 			if((cast<PathClass>(PathLib.DBSE[i].Object)).mode==1 and (cast<PathClass>(PathLib.DBSE[i].Object)).linkedpath >= 2)
 				{
 				int L_number=PathLib.Find((cast<PathClass>(PathLib.DBSE[i].Object)).linkedpath,false);
-				if(L_number >=0 and (cast<PathClass>(PathLib.DBSE[L_number].Object)).self_state != 4)
+				if(L_number >=0)
 					{
-					(cast<PathClass>(PathLib.DBSE[i].Object)).self_state=1;
-					return true;
+					if( (cast<PathClass>(PathLib.DBSE[L_number].Object)).self_state != 4)
+						{
+						(cast<PathClass>(PathLib.DBSE[i].Object)).self_state=1;
+						return true;
+						}
 					}
+				
 				}
 
 
@@ -863,7 +881,11 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 
 			TempAttachedJunction = tmpstr2[0];
 
-			tmpstr2[0,tmpstr2.size()]=null;
+
+			tmpstr2[0]=null;
+			tmpstr2[1]=null;
+			tmpstr2[2]=null;
+			tmpstr2[0,]=null;
 
 			i++;	
 			}
@@ -956,9 +978,14 @@ bool CheckPathForRemove(int path_nmb)
 			{
 			tmpstr2=Str.Tokens(sp1.GetNamedTag("object_"+i),",");
 			temp_id=BSJunctionLib.Find(tmpstr2[0],false);
+			tmpstr2[0]=null;
+			tmpstr2[1]=null;
+			tmpstr2[2]=null;
+			tmpstr2[0,]=null;
+
 		
 			if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done)==path_abs_nmb)
-				return false;
+				return false;	
 				
 			i++;		
 			}
@@ -1067,10 +1094,12 @@ public bool IsSpanPath(string ST_name, int SignalId, int pathN)
 	Soup sp1= sv_sp.GetNamedSoup("sv_^"+SignalId+"^"+pathN);
 	string end_obj=sp1.GetNamedTag("object_ending");
 	string[] tookens= Str.Tokens(end_obj,"@");
-	if(tookens.size()==2)
-		return true;
-
-	return false;
+	bool result = (tookens.size()==2);
+	tookens[0]=null;
+	if(result)
+		tookens[1]=null;
+	tookens[0,] = null;
+	return result;
 	}
 
 
@@ -1082,11 +1111,15 @@ public bool SpanDirectedCorrectly(string ST_name, int SignalId, int pathN)
 
 	string end_obj=sp1.GetNamedTag("object_ending");
 	string[] tookens= Str.Tokens(end_obj,"@");
+	bool other_st = (tookens.size()==2);
+	tookens[0]=null;
+	if(other_st)
+		tookens[1]=null;
+	tookens[0,] = null;
 
-	if(tookens.size()==2)	// светофор принадлежит другой станции
+	if(other_st)	// светофор принадлежит другой станции
 		{
 		string svetofor_Mname = sp1.GetNamedTag("object_Name");
-
 		if(svetofor_Mname != "")
 			{
 			zxSignal sign1 = cast<zxSignal>(Router.GetGameObject(svetofor_Mname));	
@@ -1105,8 +1138,13 @@ public bool ChangeSpanDirectionFor(string ST_name, int SignalId, int pathN)
 
 	string end_obj=sp1.GetNamedTag("object_ending");
 	string[] tookens= Str.Tokens(end_obj,"@");
+	bool other_st = (tookens.size()==2);
+	tookens[0]=null;
+	if(other_st)
+		tookens[1]=null;
+	tookens[0,] = null;
 
-	if(tookens.size()==2)	// светофор принадлежит другой станции
+	if(other_st)	// светофор принадлежит другой станции
 		{
 		string svetofor_Mname=sp1.GetNamedTag("object_Name");
 
@@ -1238,40 +1276,6 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 					return true;
 				}
 
-
-			if(MO1 and !MO1.isclass(Vehicle))
-				{
-				float old_dist_1 = GSTS.GetDistance();
-				MO0=me;
-
-				while(MO0 and !MO0.isclass(Junction) and !MO0.isclass(Vehicle) and ((GSTS.GetDistance() - old_dist_1)<30))		// после находения поезда - выход
-					{
-					MO0=GSTS.SearchNext();
-
-					if(MO0 and MO0.isclass(Vehicle))
-						{
-						int dir = -1;
-						if(!GSTS.GetFacingRelativeToSearchDirection())
-							dir = - dir;
-
-						float vel = (cast<Vehicle>MO0).GetVelocity();
-						if(Math.Fabs(vel) > 0.05)
-							{
-							if(vel < 0)
-								dir = - dir;
-
-							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
-							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
-
-							if((GSTS.GetDistance() - old_dist_1)<10)	// движущийся поезд в любом направлении будет блокировать стрелку
-								return true;
-							}
-						}
-					}
-				}
-
-
-
 			}
 		else
 			{
@@ -1300,36 +1304,6 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 
 				if(!(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove))
 					return true;
-				}
-
-			if(MO1)
-				{
-				float old_dist_1 = GSTS.GetDistance();
-				MO0=me;
-				while(MO0 and !MO0.isclass(Junction) and !MO0.isclass(Vehicle) and ((GSTS.GetDistance() - old_dist_1)<30))
-					{
-					MO0=GSTS.SearchNext();
-
-					if(MO0 and MO0.isclass(Vehicle))
-						{
-						int dir = -1;
-						if(!GSTS.GetFacingRelativeToSearchDirection())
-							dir = - dir;
-
-						float vel = (cast<Vehicle>MO0).GetVelocity();
-						if(Math.Fabs(vel) > 0.05)
-							{
-							if(vel < 0)
-								dir = - dir;
-
-							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
-							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
-
-							if((GSTS.GetDistance() - old_dist_1)<10)	// любой  движущийся поезд будет блокировать стрелку
-								return true;
-							}
-						}
-					}
 				}
 			}
 		}
@@ -1364,32 +1338,6 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 				if(!(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove))
 					return true;
 				}	
-			}
-
-
-		if(MO1 and MO1.isclass(Junction))
-			{
-			float old_dist_1 = GSTS.GetDistance();
-			MO0=GSTS.SearchNext();
-			if(MO0 and MO0.isclass(Vehicle) and (GSTS.GetDistance() - old_dist_1)<7 )
-				{
-				int dir = -1;
-				if(!GSTS.GetFacingRelativeToSearchDirection())
-					dir = - dir;
-
-				float vel = (cast<Vehicle>MO0).GetVelocity();
-
-				if(Math.Fabs(vel) > 0.05)
-					{
-					if(vel < 0)
-						dir = - dir; 
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
-					}
-
-				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
-
-				return true;
-				}
 			}
 		}
 
@@ -1584,8 +1532,9 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 	int i;
 
 	string end_obj=sp1.GetNamedTag("object_ending");
-
 	string[] tookens= Str.Tokens(end_obj,"@");
+
+
 
 
 	zxSignal sign1, sign2;
@@ -1597,6 +1546,11 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 	if(tookens.size()==2)	// светофор принадлежит другой станции
 		{
 		sv_sp2=StationProperties.GetNamedSoup(tookens[1] +".svetof_soup");
+		tookens[0] = null;
+		tookens[1] = null;
+		tookens[0,] = null;
+
+
 		if(sv_sp2)
 			{
 			int JunctionsNumber1=sp1.GetNamedTagAsInt("NumberOfObjects",0);
@@ -1604,22 +1558,39 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 			if(JunctionsNumber1==0)
 				return true;
 
-			i=0;
+			int[] junction_id = new int[JunctionsNumber1];
+			int[] junction_dir = new int[JunctionsNumber1];
+			bool[] junction_posh = new bool[JunctionsNumber1];
 
+			i=0;
 			while(i<JunctionsNumber1)	// определение свободности стрелок
 				{
 				tmpstr2=Str.Tokens(sp1.GetNamedTag("object_"+i),",");
-				temp_id=BSJunctionLib.Find(tmpstr2[0],false);
-				dir=Str.ToInt(tmpstr2[1]);
-				
-				if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done)!=0)
-					return false;
+				junction_id[i]=BSJunctionLib.Find(tmpstr2[0],false);
+				junction_dir[i]=Str.ToInt(tmpstr2[1]);
+				junction_posh[i]= (tmpstr2[2]=="1");
 
-				if(Any_Lock(temp_id,dir, tmpstr2[2]=="1",i,JunctionsNumber1,true, false))
+				tmpstr2[0] = null;
+				tmpstr2[1] = null;
+				tmpstr2[2] = null;
+				
+				if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[ junction_id[i] ].Object)).Permit_done)!=0)
 					return false;
 
 				i++;		
 				}
+
+			i=0;
+			while(i<JunctionsNumber1)	// определение свободности стрелок, окончательное
+				{			
+				if(Any_Lock(junction_id[i], junction_dir[i], junction_posh[i],i,JunctionsNumber1,true, false))
+					return false;
+
+				i++;		
+				}
+
+
+
 
 			return true;
 			}
@@ -1627,6 +1598,9 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 		}
 	else				// маршрут по станции
 		{
+		tookens[0] = null;
+		tookens[0,] = null;
+
 		sv_sp2=StationProperties.GetNamedSoup(ST_name +".svetof_soup");
 
 		if(sv_sp2)
@@ -1716,23 +1690,38 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 			if(JunctionsNumber1==0)
 				return true;
 
-			i=0;
 			
+			int[] junction_id = new int[JunctionsNumber1];
+			int[] junction_dir = new int[JunctionsNumber1];
+			bool[] junction_posh = new bool[JunctionsNumber1];
 
+			i=0;
 			while(i<JunctionsNumber1)	// определение свободности стрелок
 				{
 				tmpstr2=Str.Tokens(sp1.GetNamedTag("object_"+i),",");
-				temp_id=BSJunctionLib.Find(tmpstr2[0],false);
-				dir=Str.ToInt(tmpstr2[1]);
+				junction_id[i]=BSJunctionLib.Find(tmpstr2[0],false);
+				junction_dir[i]=Str.ToInt(tmpstr2[1]);
+				junction_posh[i]= (tmpstr2[2]=="1");
 
-				if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done)!=0)
+				tmpstr2[0] = null;
+				tmpstr2[1] = null;
+				tmpstr2[2] = null;
+				
+				if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[ junction_id[i] ].Object)).Permit_done)!=0)
 					return false;
 
-				if(Any_Lock(temp_id,dir,tmpstr2[2]=="1",i,JunctionsNumber1,true, false))
-					return false;
-		
 				i++;		
 				}
+
+			i=0;
+			while(i<JunctionsNumber1)	// определение свободности стрелок, окончательное
+				{			
+				if(Any_Lock(junction_id[i], junction_dir[i], junction_posh[i],i,JunctionsNumber1,true, false))
+					return false;
+				i++;		
+				}
+
+
 					
 			return true;	
 			}
@@ -2246,16 +2235,19 @@ void LeavingHandler1(Message msg)
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
 					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
 					curr_junct.SetDirection(dir1);	
-					
+
+					MainChecker();		//проверка	
 					}
 				}
 			else
 				{
 				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
 				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
+
+				MainChecker();		//проверка	
 				}
 
-			MainChecker();		//проверка		
+	
 
 			}
 		}
