@@ -47,7 +47,6 @@ void MainShowSignals();
 
 
 
-
 bool Junct_init=false;
 bool Sign_init = false;
 bool Path_init = false;
@@ -852,11 +851,27 @@ public string GetDescriptionHTML(void)
 			(
 			HTMLWindow.MakeCell
 				(
-				HTMLWindow.MakeLink("live://property/initsignas",ST1.GetString("Init_all_z7signals")+Calculated2+" ")
+				HTMLWindow.MakeLink("live://property/initsignas",ST1.GetString("Init_all_signals")+Calculated2+" ")
 				)+
 			HTMLWindow.MakeCell
 				(
 				HTMLWindow.MakeLink("live://property/station_browser",ST1.GetString("output_signals"))
+				)
+			)+
+
+
+
+
+
+		HTMLWindow.MakeRow
+			(
+			HTMLWindow.MakeCell
+				(
+				HTMLWindow.MakeLink("live://property/initallpaths",ST1.GetString("init_all_paths"))
+				)+
+			HTMLWindow.MakeCell
+				(
+				HTMLWindow.MakeLink("live://property/deletelongpaths",ST1.GetString("delete_long_paths"))
 				)
 			)+
 
@@ -1045,7 +1060,7 @@ string MakeStationList()
 
 
 
-thread void InitStation(int currentStation)
+thread void InitStation(int currentStation, bool stop)
 	{
 	Path_init = true;
 
@@ -1075,8 +1090,36 @@ thread void InitStation(int currentStation)
 
 	Path_init = false;
 
-	PostMessage(me,"Refresh","stop",0.0);
+	if(stop)
+		PostMessage(me,"Refresh","stop",0.0);
 	}
+
+
+
+
+thread void InitPath_All()
+	{
+
+	int i;
+
+	int L=StationProperties.GetNamedTagAsInt("st_Number",0);
+
+	for(i=0;i<L;i++)
+		{
+		currentStation = i;
+
+		InitStation(currentStation, false);
+
+		Sleep(0.1);
+
+		while(Path_init)
+			Sleep(0.5);
+
+		}
+	PostMessage(me,"Refresh","stop",0.0);
+
+	}
+
 
 
 
@@ -1307,7 +1350,7 @@ thread void DeletePathSignal(int station, int sign_id)
 
 
 
-thread void DeletePathStation(int station)
+thread void DeletePathStation(int station, bool stop)
 	{
 	Path_delete_init = true;
 
@@ -1344,8 +1387,33 @@ thread void DeletePathStation(int station)
 
 	Path_delete_init = false;
 
+	if(stop)
+		PostMessage(me,"Refresh","stop",0.0);
+	}
 
+
+
+thread void DeleteLongPaths()
+	{
+
+	int i;
+
+	int L=StationProperties.GetNamedTagAsInt("st_Number",0);
+
+	for(i=0;i<L;i++)
+		{
+		currentStation = i;
+
+		DeletePathStation(currentStation, false);
+
+		Sleep(0.1);
+
+		while(Path_delete_init)
+			Sleep(0.5);
+
+		}
 	PostMessage(me,"Refresh","stop",0.0);
+
 	}
 
 
@@ -1545,7 +1613,14 @@ public void LinkPropertyValue2(string propertyID)
         	{
 		InitSignals_All();
 		}
-
+	else if(propertyID == "initallpaths")
+        	{
+		InitPath_All();
+		}
+	else if(propertyID == "deletelongpaths")
+        	{
+		DeleteLongPaths();
+		}
 	else
 		{
 		string[] tookens=Str.Tokens(propertyID,"^");
@@ -1557,13 +1632,13 @@ public void LinkPropertyValue2(string propertyID)
 		if(tookens[0]=="station_init")
 			{
 			currentStation=Str.ToInt(tookens[1]);
-			InitStation(currentStation);
+			InitStation(currentStation, true);
 			}
 
 		if(tookens[0]=="station_d")
 			{
 			currentStation=Str.ToInt(tookens[1]);
-			DeletePathStation(currentStation);
+			DeletePathStation(currentStation, true);
 			}
 		if(tookens[0]=="svetofor+p")	
 			{
