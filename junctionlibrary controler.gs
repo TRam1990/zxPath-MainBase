@@ -906,6 +906,7 @@ void FromSoupJL(Soup sp7)
 		J_element.OldDirection = sp7.GetNamedTagAsInt(J_name+".OldDirection",0);
 		J_element.directionF = sp7.GetNamedTagAsInt(J_name+".directionF",0);
 		J_element.Permit_done = sp7.GetNamedTagAsInt(J_name+".Permit_done",0); 
+		J_element.Message_perm = 0;
 		J_element.Poshorstnost = sp7.GetNamedTagAsBool(J_name+".Poshorstnost",false);
 		J_element.JunctPos = sp7.GetNamedTagAsInt(J_name+".JunctPos",1); 			
 		J_element.PrevJunction = sp7.GetNamedTagAsInt(J_name+".PrevJunction",-1);
@@ -914,7 +915,7 @@ void FromSoupJL(Soup sp7)
 
 
 		if(PathLib.Find(J_element.Permit_done,false)<0)
-			J_element.Permit_done =0;
+			J_element.Permit_done = 0;
 		
 		BSJunctionLib.DBSE[i].a =J_name;
 		BSJunctionLib.DBSE[i].Object=cast<GSObject>J_element;
