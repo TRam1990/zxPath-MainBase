@@ -351,7 +351,11 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 	Soup sv_sp = StationProperties.GetNamedSoup(ST_Name1 +".svetof_soup");
 
 
-	Signal sign1 = cast<Signal>(Router.GetGameObject(temp121));
+	Signal sign1 = cast<zxSignal>(Router.GetGameObject(temp121));
+
+	if(!sign1)
+		Interface.Exception("Map object "+temp121+" is not a sU-signal!" );
+
 
 	Soup tempsoup;
 	
