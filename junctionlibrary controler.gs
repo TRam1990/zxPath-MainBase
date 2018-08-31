@@ -454,11 +454,11 @@ thread void InitJunctions_All()
 		{
 
 		q++;
-		if(q>20)
+		if(q>10)
 			{
 			qq++;
 
-			if(qq>5)
+			if(qq>3)
 				{
 
 				Calculated=ST1.GetString("now")+(string)(i*100/j_list.size())+"%";
@@ -470,10 +470,10 @@ thread void InitJunctions_All()
 
 				qq = 0;
 
-				Sleep(0.3);
+				Sleep(0.1);
 				}
 
-			Sleep(0.3);
+			Sleep(0.01);
 			q=0;
 			}
 
@@ -494,6 +494,9 @@ thread void InitJunctions_All()
 
 		 	J_element = new JuctionWithProperties();
 			add_element = true;
+
+			if(q == 10)
+				Sleep(0.01);
 			}
 
 
@@ -824,7 +827,9 @@ Soup ToSoupJL()
 			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Poshorstnost",J_element.Poshorstnost);
 			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".JunctPos",J_element.JunctPos);
 			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".PrevJunction",J_element.PrevJunction);
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".LinkedSignal",J_element.LinkedSignal);
+
+			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".LastTrainVelDir",J_element.LastTrainVelDir);
+
 
 
 			sp3.SetNamedTag((string)("soup_name_"+i),(string)(BSJunctionLib.DBSE[i].a));
@@ -904,7 +909,8 @@ void FromSoupJL(Soup sp7)
 		J_element.Poshorstnost = sp7.GetNamedTagAsBool(J_name+".Poshorstnost",false);
 		J_element.JunctPos = sp7.GetNamedTagAsInt(J_name+".JunctPos",1); 			
 		J_element.PrevJunction = sp7.GetNamedTagAsInt(J_name+".PrevJunction",-1);
-		J_element.LinkedSignal = sp7.GetNamedTag(J_name+".LinkedSignal");
+		J_element.LastTrainVelDir = sp7.GetNamedTagAsBool(J_name+".LastTrainVelDir", true);
+
 
 
 		if(PathLib.Find(J_element.Permit_done,false)<0)
@@ -1823,11 +1829,11 @@ public void LinkPropertyValue2(string propertyID)
         }
 
 void LinkPropertyValue(string propertyID)
-{
+	{
 
-LinkPropertyValue2(propertyID);
-inherited(propertyID);
-}
+	LinkPropertyValue2(propertyID);
+	inherited(propertyID);
+	}
 
 public Soup GetProperties(void)
 	{
@@ -1848,6 +1854,7 @@ public Soup GetProperties(void)
 
 	retSoup.SetNamedTag("reset_jun",reset_jun);
 
+	retSoup.SetNamedSoup("processing_junctions",processing_junctions);
      
 	return retSoup;
 	}
@@ -1859,7 +1866,7 @@ thread void Initing1(Soup soup)
 
 	if(!IsInited)
 		{
-		cache2=Constructors.NewSoup();
+		cache2.Clear();
 		cache2.Copy(soup.GetNamedSoup("my_soup1"));	
 		FromSoupJL(cache2);
 		}
@@ -1890,6 +1897,9 @@ public void SetProperties(Soup soup)
 	CurrentPath=soup.GetNamedTagAsInt("my_CurrentPath",2);
 
 	reset_jun = soup.GetNamedTagAsBool("reset_jun",false);
+
+	processing_junctions.Clear();
+	processing_junctions.Copy(soup.GetNamedSoup("processing_junctions"));
 	}
 
 
@@ -1917,6 +1927,9 @@ public void  Init (Asset asset)
 	BSJunctionLib= new BinarySortedArrayS();
 	StationProperties= Constructors.NewSoup();
 	PathLib= new BinarySortedArrayS2();
+	cache2=Constructors.NewSoup();
+	processing_junctions = Constructors.NewSoup();
+
 			
 	AddHandler(me,"TJunction_Path_source","Find_Junction_Path_base","AnsweringHander");
 
