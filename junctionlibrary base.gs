@@ -1353,12 +1353,12 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 			}
 		else
 			{
-			while( !MO1.isclass(Junction) )
+			while(MO1 and !MO1.isclass(Junction) )
 				{
 				MO1=GSTS.SearchNext();
 
 
-				if(MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0  or remove) )
+				if(MO1 and (MO1.isclass(Vehicle) or !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0  or remove) ))
 					return true;	
 				}
 
@@ -1404,10 +1404,11 @@ public bool Any_Lock(int id1, int dir1, bool poshorstn,int i,int num, bool poezn
 			if(MO1 and MO1.isclass(Vehicle) and GSTS.GetDistance() < (min_dist+(cast<Vehicle>MO1).GetLength()/2) )
 				return true;	
 			}
-		if(!poeznoi and remove and (!MO1 or (MO1 and !MO1.isclass(Vehicle))))	// поезд не мог испариться
+/*		if(!poeznoi and remove and (!MO1 or (MO1 and !MO1.isclass(Vehicle))))	// поезд не мог испариться
 			{
 			return true;
 			}
+*/
 
 		}
 
@@ -2061,8 +2062,6 @@ void LeavingHandler1(Message msg)
 				{
 				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
 				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
-				int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
-				(cast<Junction>GO).SetDirection(dir1);	
 				}
 
 			MainChecker();		//проверка		
