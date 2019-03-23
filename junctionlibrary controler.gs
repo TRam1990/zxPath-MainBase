@@ -265,29 +265,27 @@ void Log_Signals()
 
 
 
-	bool Comp_str_FL2(string a,string b)
+bool Comp_str_FL2(string a,string b)
+	{
+	int i=0;
+
+	while(i<=a.size())
 		{
-		int i=0;
+		if(i>=a.size())
+			return true;
+		if(i>=b.size())
+			return false;
 
-		while(i<=a.size())
-			{
-			if(i>=a.size())
-				return true;
-			if(i>=b.size())
-				return false;
-
-			if(a[i]>b[i])
-				return false;
-			if(a[i]<b[i])
-				return true;
-			++i;
-		
-
-			}
-
-
-		return false;
+		if(a[i]>b[i])
+			return false;
+		if(a[i]<b[i])
+			return true;
+		++i;
 		}
+
+
+	return false;
+	}
 
 
 
@@ -327,62 +325,104 @@ void SortAllStations()
 
 
 
+bool Comp_str_FL3(string a,string b)
+	{
+	if(a==b)
+		return false;
+
+	int i=0;
+	while(i<=a.size())
+		{
+		if(i>=a.size())
+			return true;
+		if(i>=b.size())
+			return false;
+
+		if(a[i]>b[i])
+			return false;
+		if(a[i]<b[i])
+			return true;
+		++i;
+		}
+
+	return false;
+	}
+
+
+
+
+void QuickSortSignals(Soup NewSoup, int first, int last, int[] counter)
+	{
+	if(first >= last)
+		return;
+
+	int left = first;
+	int right = last;
+	int middle_pos = (left + right) / 2;
+
+	string middle_val = NewSoup.GetNamedTag("sv^"+middle_pos);
+	
+	while (left <= right)
+		{
+            	while(Comp_str_FL3(NewSoup.GetNamedTag("sv^"+left), middle_val))
+			left++;
+            	while(Comp_str_FL3(middle_val, NewSoup.GetNamedTag("sv^"+right)))
+			right--;
+
+           	if (left <= right)
+            		{
+			string Svetofor_MAPname=NewSoup.GetNamedTag("sv_n^"+left);
+			string Svetofor_name=NewSoup.GetNamedTag("sv^"+left);
+			string Svetofor_Type=NewSoup.GetNamedTag("sv_type^"+left);
+
+			// число маршрутов в любом случае на этапе сортировки 0 у всех светофоров
+
+			//NewSoup.SetNamedTag("sv_paths_number^"+left,0);
+			//NewSoup.SetNamedTag("sv_paths_number^"+right,0);
+
+			NewSoup.SetNamedTag("sv_n^"+left,NewSoup.GetNamedTag("sv_n^"+right));
+			NewSoup.SetNamedTag("sv^"+left,NewSoup.GetNamedTag("sv^"+right));
+			NewSoup.SetNamedTag("sv_type^"+left,NewSoup.GetNamedTag("sv_type^"+right));
+	
+			NewSoup.SetNamedTag("sv_n^"+right,Svetofor_MAPname);
+			NewSoup.SetNamedTag("sv^"+right,Svetofor_name);
+			NewSoup.SetNamedTag("sv_type^"+right,Svetofor_Type);
+
+                	left++;
+                	right--;
+            		}
+		}
+
+	QuickSortSignals(NewSoup, first, right, counter);
+	QuickSortSignals(NewSoup, left, last, counter);
+
+
+
+	if((counter[0] % 20) == 0)
+		Sleep(0.01);
+
+	++counter[0];
+
+	}
+
+
 
 void SortAllSignasAtStation(int Station_id)
 	{
-
-	Soup Temp1;
-
 
 	string ST_name = StationProperties.GetNamedTag("station_name_by_ID"+Station_id);
 	Soup St_prop = StationProperties.GetNamedSoup(ST_name+".svetof_soup");
 	int svetof_numb=StationProperties.GetNamedTagAsInt(ST_name+".svetof_number",0);
 
 
-	int i, j,q;
-
-
-	string Svetofor_name;
-	string Svetofor_MAPname;	
-	string Svetofor_Type;
-
-
 	Soup NewSoup=Constructors.NewSoup();
 	NewSoup.Copy(St_prop);
 	
- 
- 	for( i=0; i < svetof_numb; i++) 
-		{  
-		if((i % 10) == 0)
-			Sleep(0.01);
-          
-    		for( j =svetof_numb-1; j > i; j-- ) 
-			{ 
 
-			if((j % 20) == 0)
-				Sleep(0.01);
-    
-      			q=j-1;
-			
-			if(Comp_str_FL2(NewSoup.GetNamedTag("sv^"+j) , NewSoup.GetNamedTag("sv^"+q)) )
-				{
-				Svetofor_MAPname=NewSoup.GetNamedTag("sv_n^"+q);
-				Svetofor_name=NewSoup.GetNamedTag("sv^"+q);
-				Svetofor_Type=NewSoup.GetNamedTag("sv_type^"+q);
-				NewSoup.SetNamedTag("sv_paths_number^"+q,0);
+	int[] counter = new int[1];
+	counter[0] = 0;
 
-				NewSoup.SetNamedTag("sv_n^"+q,NewSoup.GetNamedTag("sv_n^"+j)   );
-				NewSoup.SetNamedTag("sv^"+q,NewSoup.GetNamedTag("sv^"+j));
-				NewSoup.SetNamedTag("sv_type^"+q,NewSoup.GetNamedTag("sv_type^"+j));
-
-				NewSoup.SetNamedTag("sv_paths_number^"+j,0);
-				NewSoup.SetNamedTag("sv_n^"+j,Svetofor_MAPname);
-				NewSoup.SetNamedTag("sv^"+j,Svetofor_name);
-				NewSoup.SetNamedTag("sv_type^"+j,Svetofor_Type);
-    				}
-  			}
-		}
-
+	QuickSortSignals(NewSoup, 0, svetof_numb-1, counter);
 
 	StationProperties.SetNamedSoup(ST_name+".svetof_soup",NewSoup);
 
@@ -424,21 +464,22 @@ thread void InitJunctions_All()
 
 	for(i=0;i<BSJunctionLib.DBSE.size();i++)
 		{
-
-		if(BSJunctionLib.DBSE[i].Object and BSJunctionLib.DBSE[i].Object.isclass(JuctionWithProperties))
+		if(BSJunctionLib.DBSE[i])
 			{
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).back = null;
+			if(BSJunctionLib.DBSE[i].Object and BSJunctionLib.DBSE[i].Object.isclass(JuctionWithProperties))
+				{
+				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).back = null;
 	
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).frontLeft = null;
+				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).frontLeft = null;
 	
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).frontRight = null;
+				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object)).frontRight = null;
+				}
+			BSJunctionLib.DBSE[i].Object = null;
 			}
-		BSJunctionLib.DBSE[i].Object = null;
-
 		}
 
 
-	BSJunctionLib.DBSE[0,BSJunctionLib.DBSE.size()] = null;
+	BSJunctionLib.DBSE[0,] = null;
 
 	BSJunctionLib.N = 0;
 	
@@ -454,7 +495,7 @@ thread void InitJunctions_All()
 		{
 
 		q++;
-		if(q>10)
+		if(q>5)
 			{
 			qq++;
 
@@ -749,14 +790,8 @@ thread void InitJunctions_All()
 
 
 		if(add_element)
-			{
-			if(BSJunctionLib.N+10>BSJunctionLib.DBSE.size())
-				BSJunctionLib.UdgradeArraySize(20+2*BSJunctionLib.DBSE.size());
-
 			BSJunctionLib.AddElement((string)(j_list[i].GetName()),(cast<GSObject>(J_element)));
 
-
-			}
 		}
 
 	IsInited=true;
@@ -856,18 +891,21 @@ void FromSoupJL(Soup sp7)
 	if(size11<=0)
 		return;
 
-	BSJunctionLib.N=0;
 
-	BSJunctionLib.UdgradeArraySize(size11);
+
+
+	BSJunctionLib.DBSE[0,] = null;
+	BSJunctionLib.N = 0;
 
 	
 	string J_name;
 	string temp_string1;
 
 
-	JuctionWithProperties[] J_elements=new JuctionWithProperties[0,size11];
+	JuctionWithProperties[] J_elements=new JuctionWithProperties[size11];
 
 	BSJunctionLib.N=size11;
+	BSJunctionLib.DBSE=new BinarySortedElementS[size11];
 
 	for(i=0;i<size11;i++)
 		{
@@ -917,6 +955,7 @@ void FromSoupJL(Soup sp7)
 		if(PathLib.Find(J_element.Permit_done,false)<0)
 			J_element.Permit_done = 0;
 		
+		BSJunctionLib.DBSE[i] = new BinarySortedElementS();
 		BSJunctionLib.DBSE[i].a =J_name;
 		BSJunctionLib.DBSE[i].Object=cast<GSObject>J_element;
 		
@@ -959,8 +998,6 @@ void Log_Junctions()
 		Interface.Log(a);
 		
 		}
-	
-
 	} 
 
 
@@ -1502,10 +1539,6 @@ thread void DeletePathStation(int station, bool stop, bool reset)
 		{
 		int i=0;
 		int SizeOfPaths=sv_sp.GetNamedTagAsInt("sv_paths_number^"+j,-1);
-
-
-		
-
 
 
 		while(i<SizeOfPaths)
