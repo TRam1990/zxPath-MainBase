@@ -1268,6 +1268,9 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 						}
 
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
+
+					//Interface.Print(JN2.GetName() + " train found before ");
+
 					return true;
 					}
 
@@ -2127,9 +2130,11 @@ void LeavingHandler1(Message msg)
 					num_jun = 1;
 					}
 
+				bool old_train_found = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound;
+
 				bool result_l = Any_Lock(curr_junct, temp_id ,  curr_junct.GetDirection() , (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost, pos,num_jun, poeznoi,true);
 
-				if(!(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound and 
+				if(!((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound or old_train_found) and 
 				    !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).LastTrainVelDir) // поезд ушёл в обратном направлении, то проверки прекращаются ?
 					{
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = 0;
