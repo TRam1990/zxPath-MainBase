@@ -839,6 +839,10 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 			else
 				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost=false;
 
+
+			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound = false;	// считается, что поезд на стрелку ещё не наехал при сборе маршрута по ней
+
+
 			Jn1 = cast<Junction>Router.GetGameObject( BSJunctionLib.DBSE[temp_id].a );
 
 			if(!Jn1.SetDirection(Str.ToInt(tmpstr2[1])))
@@ -1170,8 +1174,6 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 	MO1=me;	
 
 
-	(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = false;
-
 
 	if(i==0)
 		{
@@ -1179,8 +1181,10 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 			{
 			bool any_train = false;
 			
+			bool is_train_signal = false;
 
-			while(MO1 and !MO1.isclass(Junction)  and !(MO1.isclass(zxSignal)  and !GSTS.GetFacingRelativeToSearchDirection() and ( (cast<zxSignal>MO1).Type & (2+4+8) )  ))
+
+			while(MO1 and !MO1.isclass(Junction)  and !is_train_signal)
 				{
 				MO1=GSTS.SearchNext();
 	
@@ -1196,12 +1200,15 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 						float vel = (cast<Vehicle>MO1).GetVelocity();
 
-						if(Math.Fabs(vel) > 0.05)
+						if(Math.Fabs(vel) > 0.01)
 							{
 							if(vel < 0)
 								dir = - dir; 
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 							}
+
+
+						//Interface.Print(JN2.GetName() + " train found poeznoi before "+MO1.GetName() + " dir "+dir);
 
 						(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
 						return true;
@@ -1209,9 +1216,44 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 					else if(MO1.isclass(Trigger) and !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove))
 						return true;
+
+					is_train_signal = (MO1.isclass(zxSignal) and !GSTS.GetFacingRelativeToSearchDirection() and ( (cast<zxSignal>MO1).Type & (2+4+8) ));
 					}	
 				}
 
+			if(is_train_signal)
+				{
+
+				float prev_sign_dist = GSTS.GetDistance();
+
+				MO1=GSTS.SearchNext();
+
+				if(MO1 and MO1.isclass(Vehicle))
+					{
+					int dir = -1;
+					if(!GSTS.GetFacingRelativeToSearchDirection())
+						dir = - dir;
+
+
+					float vel = (cast<Vehicle>MO1).GetVelocity();
+					if(Math.Fabs(vel) > 0.01)
+						{
+						if(vel < 0)
+							dir = - dir; 
+						
+						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 10)))
+							{
+
+							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
+
+							//Interface.Print(JN2.GetName() + " train found before signal "+MO1.GetName()+" dir "+dir);
+
+							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
+							return true;
+							}
+						}
+					}
+				}
 			}
 		else
 			{
@@ -1227,12 +1269,14 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 
 					float vel = (cast<Vehicle>MO1).GetVelocity();
-					if(Math.Fabs(vel) > 0.05)
+					if(Math.Fabs(vel) > 0.01)
 						{
 						if(vel < 0)
 							dir = - dir; 
 						(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 						}
+
+					//Interface.Print(JN2.GetName() + " train found shunt before "+MO1.GetName()+" dir "+dir);
 
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
 					return true;
@@ -1240,6 +1284,39 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 				else if(MO1.isclass(Trigger) and !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove))
 					return true;
+				}
+
+			if(MO1 and MO1.isclass(Signal))	// перепроверка поезда за близким светофором, на расстоянии не более 10 метров
+				{
+				float prev_sign_dist = GSTS.GetDistance();
+
+				MO1=GSTS.SearchNext();
+
+				if(MO1 and MO1.isclass(Vehicle))
+					{
+					int dir = -1;
+					if(!GSTS.GetFacingRelativeToSearchDirection())
+						dir = - dir;
+
+
+					float vel = (cast<Vehicle>MO1).GetVelocity();
+					if(Math.Fabs(vel) > 0.01)
+						{
+						if(vel < 0)
+							dir = - dir; 
+						
+						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 10)))
+							{
+
+							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
+
+							//Interface.Print(JN2.GetName() + " train found shunt before signal "+MO1.GetName()+" dir "+dir);
+
+							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
+							return true;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -1260,7 +1337,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 					float vel = (cast<Vehicle>MO1).GetVelocity();
 
-					if(Math.Fabs(vel) > 0.05)
+					if(Math.Fabs(vel) > 0.01)
 						{
 						if(vel < 0)
 							dir = - dir; 
@@ -1269,7 +1346,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
 
-					//Interface.Print(JN2.GetName() + " train found before ");
+					//Interface.Print(JN2.GetName() + " train found before "+MO1.GetName() + " dir "+dir);
 
 					return true;
 					}
@@ -1319,7 +1396,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 			float vel = (cast<Vehicle>MO1).GetVelocity();
 
-			if(Math.Fabs(vel) > 0.05)
+			if(Math.Fabs(vel) > 0.01)
 				{
 				if(vel < 0)
 					dir = - dir;
@@ -1329,7 +1406,10 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
 
 			if(GSTS.GetDistance() < (min_dist+(cast<Vehicle>MO1).GetLength()/2))
+				{
+				//Interface.Print(JN2.GetName() + " vehicle near junction  "+MO1.GetName() + " dir "+dir);
 				return true;
+				}
 			}	
 		}
 
@@ -1363,7 +1443,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 					float vel = (cast<Vehicle>MO1).GetVelocity();
 
-					if(Math.Fabs(vel) > 0.05)
+					if(Math.Fabs(vel) > 0.01)
 						{
 						if(vel < 0)
 							dir = - dir; 
@@ -1371,6 +1451,8 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 						}
 
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
+
+					//Interface.Print(JN2.GetName() + " vehicle before junction "+MO1.GetName() + " dir "+dir);
 
 					return true;
 					}
@@ -1396,7 +1478,10 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 		{
 		int other_id = BSJunctionLib.Find(MO1.GetName());
 		if(other_id < 0)
+			{
+			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = false;
 			return false;
+			}
 
 		int next_dir = JunctionBase.DIRECTION_BACKWARD;
 
@@ -1422,7 +1507,10 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 		{
 		MO1=GSTS.SearchNext();
 		if(!MO1)
+			{
+			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = false;
  			return false;
+			}
 			
 		if(MO1.isclass(Vehicle))
 			prev_veh_dist = GSTS.GetDistance();
@@ -1435,19 +1523,29 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 		if(prev_veh_dist >= 0.0)
 			{
 			if((curr_jun_dist - prev_veh_dist) < 10)
+				{
+				//Interface.Print("curr_jun_dist "+curr_jun_dist + " prev_veh_dist " + prev_veh_dist + " of junction "+MO1.GetName());
 				return true;
+				}
 			}
 		else
 			{
+			string junct_name = MO1.GetName();
+
 			MO1=GSTS.SearchNext();
 
 			if(MO1 and MO1.isclass(Vehicle))
 				{
 				if((GSTS.GetDistance() - curr_jun_dist) < 5)
+					{
+					//Interface.Print(junct_name + " 2_jun_dist "+curr_jun_dist + " prev_veh_dist " + prev_veh_dist + " of junction "+MO1.GetName());
 					return true;
+					}
 				}
 			}
 		}
+
+	(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = false;
 
 	return false;
 	}
@@ -1492,7 +1590,9 @@ public bool Simple_Lock(Junction JN, int id1)
 		{
 		MO1=GSTS.SearchNext();
 		if(!MO1)
- 			return false;
+			{
+			return false;
+			}
 			
 		if(MO1.isclass(Vehicle))
 			prev_veh_dist = GSTS.GetDistance();
@@ -2130,13 +2230,16 @@ void LeavingHandler1(Message msg)
 					num_jun = 1;
 					}
 
-				bool old_train_found = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound;
-
 				bool result_l = Any_Lock(curr_junct, temp_id ,  curr_junct.GetDirection() , (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost, pos,num_jun, poeznoi,true);
 
-				if(!((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound or old_train_found) and 
+				//Interface.Log("any_lock_res "+result_l);
+
+				if(!(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound and 
 				    !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).LastTrainVelDir) // поезд ушёл в обратном направлении, то проверки прекращаются ?
 					{
+
+					//Interface.Print("train moved in reverse direction "+BSJunctionLib.DBSE[temp_id].a);
+
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = 0;
 					processing_junctions.RemoveNamedTag(temp_id);
 					return;
@@ -2145,6 +2248,7 @@ void LeavingHandler1(Message msg)
 
 				if(result_l)
 					{
+
 					if((msg.major == "ObjectLeftCheck") and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm == Path_tmp_nmb))
 						PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
 					else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
@@ -2163,8 +2267,12 @@ void LeavingHandler1(Message msg)
 						int other_jn = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction;
 						if(other_jn>=0)
 							{
+	
 							if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[other_jn].Object)).Permit_done ==  Path_tmp_nmb)	// если предыдущая стрелка маршрута не освобождена, эта тоже не может освободиться
 								{
+								//Interface.Print("previous junction not released "+BSJunctionLib.DBSE[other_jn].a);
+
+
 								if(msg.major == "ObjectLeftCheck")
 									PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
 								else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
@@ -2183,6 +2291,9 @@ void LeavingHandler1(Message msg)
 
 					if(!permit_state)
 						{
+
+						//Interface.Print("permit cannot released "+BSJunctionLib.DBSE[temp_id].a);
+
 						if((msg.major == "ObjectLeftCheck") and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm == Path_tmp_nmb))
 							PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
 						else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
