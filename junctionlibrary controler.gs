@@ -430,7 +430,6 @@ void SortAllSignasAtStation(int Station_id)
 
 
 
-
 thread void InitJunctions_All()
 	{
 
@@ -821,6 +820,7 @@ thread void InitJunctions_All()
 	PostMessage(me,"Refresh","now",0);
 	if(sub_browser and !been_refreshing)
 		PropertyBrowserRefresh(sub_browser);
+
 	}
 
 

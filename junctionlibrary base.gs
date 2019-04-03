@@ -1227,7 +1227,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 				MO1=GSTS.SearchNext();
 
-				if(MO1 and !MO1.isclass(Vehicle))	// в случае если 2 светофора подряд или светофор + стрелка
+				while(MO1 and !MO1.isclass(Vehicle) and (GSTS.GetDistance() < (prev_sign_dist + 15)))	// в случае если 2 светофора подряд или светофор + стрелка
 					MO1=GSTS.SearchNext();
 
 
@@ -1244,7 +1244,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 						if(vel < 0)
 							dir = - dir; 
 						
-						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 10)))
+						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 15)))
 							{
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
@@ -1253,6 +1253,8 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 							return true;
 							}
 						}
+
+					//Interface.Print(JN2.GetName() + " train checked but not released "+MO1.GetName()+" dir "+dir + " vel "+vel);
 					}
 				}
 			}
@@ -1295,6 +1297,10 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 				MO1=GSTS.SearchNext();
 
+				while(MO1 and !MO1.isclass(Vehicle) and (GSTS.GetDistance() < (prev_sign_dist + 15)))	// в случае если 2 светофора подряд или светофор + стрелка
+					MO1=GSTS.SearchNext();
+
+
 				if(MO1 and MO1.isclass(Vehicle))
 					{
 					int dir = -1;
@@ -1307,7 +1313,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 						if(vel < 0)
 							dir = - dir; 
 						
-						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 10)))
+						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 15)))
 							{
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 
@@ -1317,6 +1323,8 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 							return true;
 							}
 						}
+
+					//Interface.Print(JN2.GetName() + " train checked but not released shunt "+MO1.GetName()+" dir "+dir + " vel "+vel);
 					}
 				}
 			}
