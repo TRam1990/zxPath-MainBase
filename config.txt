@@ -72,7 +72,7 @@ thumbnails
     height                              180
   }
 }
-kuid                                    <kuid2:400260:98888231:25>
+kuid                                    <kuid2:400260:98888231:27>
 
 kuid-table
 {

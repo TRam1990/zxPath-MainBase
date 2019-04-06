@@ -1220,7 +1220,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					}	
 				}
 
-			if(remove and is_train_signal)	// проверять приближающийся поезд только для освобождаемой стрелки, а не для собираемого маршрута
+			if(remove and (is_train_signal or !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound))	// проверять приближающийся поезд только для освобождаемой стрелки, а не для собираемого маршрута
 				{
 
 				float prev_sign_dist = GSTS.GetDistance();
@@ -1291,7 +1291,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					return true;
 				}
 
-			if(remove and MO1 and MO1.isclass(Signal))	// перепроверка поезда за близким светофором, на расстоянии не более 10 метров, только для освобождения маршрута
+			if(remove and MO1 and (MO1.isclass(Signal) or !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound))	// перепроверка поезда за близким светофором, на расстоянии не более 10 метров, только для освобождения маршрута
 				{
 				float prev_sign_dist = GSTS.GetDistance();
 
@@ -1365,6 +1365,45 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 				else if(MO1.isclass(Trigger) and !(remove or MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0))
 					return true;
 				}	
+			}
+
+
+		if(remove and MO1 and !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound)
+			{
+
+			float prev_sign_dist = GSTS.GetDistance();
+
+			MO1=GSTS.SearchNext();
+
+			while(MO1 and !MO1.isclass(Vehicle) and (GSTS.GetDistance() < (prev_sign_dist + 15)))	// в случае если 2 светофора подряд или светофор + стрелка
+				MO1=GSTS.SearchNext();
+
+
+			if(MO1 and MO1.isclass(Vehicle))
+				{
+				int dir = -1;
+				if(!GSTS.GetFacingRelativeToSearchDirection())
+					dir = - dir;
+
+				float vel = (cast<Vehicle>MO1).GetVelocity();
+				if(Math.Fabs(vel) > 0.01)
+					{
+					if(vel < 0)
+						dir = - dir; 
+						
+					if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 15)))
+						{
+						(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
+
+						//Interface.Print(JN2.GetName() + " train found shunt before signal "+MO1.GetName()+" dir "+dir);
+
+						(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
+						return true;
+						}
+					}
+
+				//Interface.Print(JN2.GetName() + " train checked but not released shunt "+MO1.GetName()+" dir "+dir + " vel "+vel);
+				}
 			}
 		}
 
