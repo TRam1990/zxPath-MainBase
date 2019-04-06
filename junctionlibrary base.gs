@@ -1220,7 +1220,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					}	
 				}
 
-			if(remove and (is_train_signal or !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound))	// проверять приближающийся поезд только для освобождаемой стрелки, а не для собираемого маршрута
+			if(remove and is_train_signal)	// проверять приближающийся поезд только для освобождаемой стрелки, а не для собираемого маршрута
 				{
 
 				float prev_sign_dist = GSTS.GetDistance();
@@ -1291,7 +1291,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					return true;
 				}
 
-			if(remove and MO1 and (MO1.isclass(Signal) or !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound))	// перепроверка поезда за близким светофором, на расстоянии не более 10 метров, только для освобождения маршрута
+			if(remove and MO1 and !MO1.isclass(Junction))	// перепроверка поезда за близким светофором, на расстоянии не более 10 метров, только для освобождения маршрута
 				{
 				float prev_sign_dist = GSTS.GetDistance();
 
@@ -1368,7 +1368,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 			}
 
 
-		if(remove and MO1 and !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound)
+		if(remove and MO1)
 			{
 
 			float prev_sign_dist = GSTS.GetDistance();
