@@ -1428,7 +1428,7 @@ bool DeleteLongAltPaths(string ST_name, int SignalId, int pathN)
 			if(sleep_cnt > 1)
 				{
 				sleep_cnt = 0;
-				Sleep(0.3);
+				Sleep(0.01);
 				}
 			}
 			
@@ -1518,7 +1518,7 @@ thread void DeletePathSignal(int station, int sign_id)
 		{
 		if( !DeleteLongAltPaths(ST_name, sign_id, i) )
 			i++;
-		if(i % 10 == 0)
+		if(i % 3 == 0)
 			Sleep(0.01);
 		}
 	ResetJunctions();

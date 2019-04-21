@@ -658,7 +658,7 @@ public void MakeAllPathsFromSignal(int stationID, int SignalId)
 
 
 	JunctionsOfStation.N = 0;
-	JunctionsOfStation.DBSE[0, (JunctionsOfStation.DBSE.size()) ] = null;
+	JunctionsOfStation.DBSE[0, ] = null;
 	JunctionsOfStation = null;
 
 	sv_sp.SetNamedTag("sv_paths_number^"+SignalId,NumberOfPaths);
@@ -1876,7 +1876,7 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 	}
 
 
-public void MainChecker()
+public thread void MainChecker()
 	{
 	RemovePath(CancelPath);
 
@@ -1885,6 +1885,9 @@ public void MainChecker()
 		{
 		if(CheckPath(i))
 			i++;
+
+		if((i % 20) == 0)
+			Sleep(0.1);
 		}
 	PostMessage(me,"z7-xPath", "Update",0.0);
 	}
