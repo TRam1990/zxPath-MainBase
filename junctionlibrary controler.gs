@@ -823,7 +823,7 @@ thread void InitJunctions_All()
 	if(sub_browser and !been_refreshing)
 		PropertyBrowserRefresh(sub_browser);
 
-	Log_Junctions();
+	//Log_Junctions();
 
 	}
 

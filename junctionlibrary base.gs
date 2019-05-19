@@ -808,12 +808,13 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 
 			if(temp_id == OldJunId)
 				Interface.Exception("Junctions "+BSJunctionLib.DBSE[OldJunId].a+" and "+tmpstr2[0]+" have the same ID. Reinit junctions.");
-							
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=Path_nmb;
+			
+			JuctionWithProperties junct_prop = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object));
 
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= OldJunId;
-
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).LastTrainVelDir = true;	//что поезд двигался по маршруту
+			
+			junct_prop.Permit_done=Path_nmb;
+			junct_prop.PrevJunction= OldJunId;
+			junct_prop.LastTrainVelDir = true;	//что поезд двигался по маршруту
 
 
 			OldJunId=temp_id;
@@ -821,25 +822,25 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 			if(i==0)
 				{
 				if( JunctionsNumber2 != 1 )
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos=0;
+					junct_prop.JunctPos=0;
 				else
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos=3;
+					junct_prop.JunctPos=3;
 				}
 			else
 				{
 				if(i==(JunctionsNumber2-1))
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos=2;
+					junct_prop.JunctPos=2;
 				else
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos=1;
+					junct_prop.JunctPos=1;
 				}
 	
 			if(tmpstr2[2]=="1")
-				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost=true;
+				junct_prop.Poshorstnost=true;
 			else
-				(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost=false;
+				junct_prop.Poshorstnost=false;
 
 
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound = false;	// считается, что поезд на стрелку ещё не наехал при сборе маршрута по ней
+			junct_prop.TrainFound = false;	// считается, что поезд на стрелку ещё не наехал при сборе маршрута по ней
 
 
 			Jn1 = cast<Junction>Router.GetGameObject( BSJunctionLib.DBSE[temp_id].a );
@@ -847,7 +848,6 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 			if(!Jn1.SetDirection(Str.ToInt(tmpstr2[1])))
 				{
 				Jn1.AllowManualControl(true);
-
 				Jn1.SetDirection(Str.ToInt(tmpstr2[1]));
 				}
 
@@ -887,7 +887,7 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 		}
 
 	
-	if(MO and !MO.isclass(Junction) )
+/*	if(MO and !MO.isclass(Junction) )		// не нужно
 		{
 		GSTrackSearch GSTS2= GSTS1.CloneSearch();
 		bool dir1 = GSTS1.GetFacingRelativeToSearchDirection();
@@ -902,7 +902,7 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 			dir1 = GSTS2.GetFacingRelativeToSearchDirection();
 			}
 		}
-
+*/
 
 
 	if(MO and MO.isclass(Trigger) and MO.GetProperties().GetNamedTagAsBool("zxPath_can_lock",false))
@@ -1197,7 +1197,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 							float vel = (cast<Vehicle>MO1).GetVelocity();
 	
-							if(Math.Fabs(vel) > 0.01)
+							if(vel != 0)
 								{
 								if(vel < 0)
 									dir = - dir; 
@@ -1239,7 +1239,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 
 					float vel = (cast<Vehicle>MO1).GetVelocity();
-					if(Math.Fabs(vel) > 0.01)
+					if(vel != 0)
 						{
 						if(vel < 0)
 							dir = - dir; 
@@ -1273,9 +1273,9 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 							dir = - dir;
 
 						float vel = (cast<Vehicle>MO1).GetVelocity();
-						if(Math.Fabs(vel) > 0.01)
+						if(vel != 0)
 							{
-							if(vel < 0)
+							if(vel < -0.000001)
 								dir = - dir; 
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 							}
@@ -1308,23 +1308,23 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 						dir = - dir;
 
 					float vel = (cast<Vehicle>MO1).GetVelocity();
-					if(Math.Fabs(vel) > 0.01)
+					if(vel != 0)
 						{
-						if(vel < 0)
+						if(vel < -0.000001)
 							dir = - dir; 
 						
 						if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 15)))
 							{
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 
-							//Interface.Print(JN2.GetName() + " train found shunt before signal "+MO1.GetName()+" dir "+dir);
+							Interface.Print(JN2.GetName() + " train found shunt before signal "+MO1.GetName()+" dir "+dir);
 
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
 							return true;
 							}
 						}
 
-					//Interface.Print(JN2.GetName() + " train checked but not released shunt "+MO1.GetName()+" dir "+dir + " vel "+vel);
+					Interface.Print(JN2.GetName() + " train checked but not released shunt "+MO1.GetName()+" dir "+dir + " vel "+vel);
 					}
 				}
 			}
@@ -1347,9 +1347,9 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 						float vel = (cast<Vehicle>MO1).GetVelocity();
 
-						if(Math.Fabs(vel) > 0.01)
+						if(vel != 0)
 							{
-							if(vel < 0)
+							if(vel < -0.000001)
 								dir = - dir; 
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 							}
@@ -1386,9 +1386,9 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					dir = - dir;
 
 				float vel = (cast<Vehicle>MO1).GetVelocity();
-				if(Math.Fabs(vel) > 0.01)
+				if(vel != 0)
 					{
-					if(vel < 0)
+					if(vel < -0.000001)
 						dir = - dir; 
 						
 					if((dir > 0) and (GSTS.GetDistance() < (prev_sign_dist + 15)))
@@ -1448,7 +1448,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 
 
-			if(remove and (Math.Fabs(vel) > 0.01))
+			if(remove and (vel != 0))
 				{
 				if(vel < 0)
 					dir = - dir;
@@ -1494,7 +1494,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 						float vel = (cast<Vehicle>MO1).GetVelocity();
 
-						if(Math.Fabs(vel) > 0.01)
+						if(vel != 0)
 							{
 							if(vel < 0)
 								dir = - dir; 
