@@ -841,37 +841,39 @@ Soup ToSoupJL()
 		{
 
 			J_element=cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object);
+			string j_name = BSJunctionLib.DBSE[i].a;
+
 
 			if(J_element.back)
 				{
-				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".back",(J_element.back).GetName());
-				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".back_dir",J_element.back_dir);
+				sp3.SetNamedTag(j_name+".back",(J_element.back).GetName());
+				sp3.SetNamedTag(j_name+".back_dir",J_element.back_dir);
 				}
 
 			if(J_element.frontLeft)
 				{
-				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontLeft",(J_element.frontLeft).GetName());
-				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontLeft_dir",J_element.frontLeft_dir);
+				sp3.SetNamedTag(j_name+".frontLeft",(J_element.frontLeft).GetName());
+				sp3.SetNamedTag(j_name+".frontLeft_dir",J_element.frontLeft_dir);
 				}
 
 			if(J_element.frontRight)
 				{
-				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontRight",(J_element.frontRight).GetName());
-				sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".frontRight_dir",J_element.frontRight_dir);
+				sp3.SetNamedTag(j_name+".frontRight",(J_element.frontRight).GetName());
+				sp3.SetNamedTag(j_name+".frontRight_dir",J_element.frontRight_dir);
 				}
 
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".OldDirection",J_element.OldDirection);
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".directionF",J_element.directionF);
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Permit_done",J_element.Permit_done);
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".Poshorstnost",J_element.Poshorstnost);
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".JunctPos",J_element.JunctPos);
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".PrevJunction",J_element.PrevJunction);
+			sp3.SetNamedTag(j_name+".OldDirection",J_element.OldDirection);
+			sp3.SetNamedTag(j_name+".directionF",J_element.directionF);
+			sp3.SetNamedTag(j_name+".Permit_done",J_element.Permit_done);
+			sp3.SetNamedTag(j_name+".Poshorstnost",J_element.Poshorstnost);
+			sp3.SetNamedTag(j_name+".JunctPos",J_element.JunctPos);
+			sp3.SetNamedTag(j_name+".PrevJunction",J_element.PrevJunction);
 
-			sp3.SetNamedTag((string)(BSJunctionLib.DBSE[i].a)+".LastTrainVelDir",J_element.LastTrainVelDir);
+			sp3.SetNamedTag(j_name+".LastTrainVelDir",J_element.LastTrainVelDir);
 
 
 
-			sp3.SetNamedTag((string)("soup_name_"+i),(string)(BSJunctionLib.DBSE[i].a));
+			sp3.SetNamedTag("soup_name_"+i,j_name);
 			
 		}
 

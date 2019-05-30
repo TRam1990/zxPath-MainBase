@@ -844,12 +844,16 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 
 
 			Jn1 = cast<Junction>Router.GetGameObject( BSJunctionLib.DBSE[temp_id].a );
+			int dir1 = Str.ToInt(tmpstr2[1]);
 
-			if(!Jn1.SetDirection(Str.ToInt(tmpstr2[1])))
+
+			if(!Jn1.SetDirection(dir1))
 				{
 				Jn1.AllowManualControl(true);
-				Jn1.SetDirection(Str.ToInt(tmpstr2[1]));
+				Jn1.SetDirection(dir1);
 				}
+
+			Jn1.SetDefaultDirection(dir1);
 
 			TempAttachedJunction = tmpstr2[0];
 
@@ -1291,7 +1295,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					return true;
 				}
 
-			if(remove and MO1 and !MO1.isclass(Junction))	// перепроверка поезда за близким светофором, на расстоянии не более 10 метров, только для освобождения маршрута
+			if(remove and MO1 and !MO1.isclass(Junction))	// перепроверка поезда за близким светофором, на расстоянии не более 15 метров, только для освобождения маршрута
 				{
 				float prev_sign_dist = GSTS.GetDistance();
 
@@ -1305,7 +1309,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					{
 					int dir = -1;
 					if(!GSTS.GetFacingRelativeToSearchDirection())
-						dir = - dir;
+						dir = -dir;
 
 					float vel = (cast<Vehicle>MO1).GetVelocity();
 					if(vel != 0)
@@ -1317,14 +1321,14 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 							{
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).LastTrainVelDir = (dir > 0);
 
-							Interface.Print(JN2.GetName() + " train found shunt before signal "+MO1.GetName()+" dir "+dir);
+							//Interface.Print(JN2.GetName() + " train found shunt before signal "+MO1.GetName()+" dir "+dir);
 
 							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[id1].Object)).TrainFound = true;
 							return true;
 							}
 						}
 
-					Interface.Print(JN2.GetName() + " train checked but not released shunt "+MO1.GetName()+" dir "+dir + " vel "+vel);
+					//Interface.Print(JN2.GetName() + " train checked but not released shunt "+MO1.GetName()+" dir "+dir + " vel "+vel);
 					}
 				}
 			}
@@ -1425,7 +1429,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 	if(poshorstn)
 		{	
 		GSTS=JN.BeginTrackSearch(JunctionBase.DIRECTION_BACKWARD);
-		min_dist = 2;
+		min_dist = 5;
 		}
 	else	
 		{	
@@ -2244,16 +2248,19 @@ void LeavingHandler1(Message msg)
 		if(temp_id<0)
 			return;
 
-		int Path_tmp_nmb=(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done;
+		JuctionWithProperties currJWP = cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object);
 
-		int message_path_num = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm;
+
+		int Path_tmp_nmb=currJWP.Permit_done;
+
+		int message_path_num = currJWP.Message_perm;
 
 
 		if((msg.minor=="InnerEnter") and (Path_tmp_nmb==0))
 			{
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done= 1;
-			(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm= 1;
+			currJWP.PrevJunction= -1;
+			currJWP.Permit_done= 1;
+			currJWP.Message_perm= 1;
 
 			PostMessage( GO , "ObjectLeftCheck", "1", 2.0);
 			}
@@ -2270,6 +2277,9 @@ void LeavingHandler1(Message msg)
 			
 			int p_element_n=PathLib.Find(Path_tmp_nmb);
 
+
+			
+
 			if(p_element_n>=0 and (cast<PathClass>(PathLib.DBSE[p_element_n].Object)).mode>=0)
 				{
 
@@ -2281,7 +2291,7 @@ void LeavingHandler1(Message msg)
 					poeznoi = false;
 
 				
-				int pos = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos;
+				int pos = currJWP.JunctPos;
 
 
 				int num_jun = 3;
@@ -2293,17 +2303,16 @@ void LeavingHandler1(Message msg)
 					num_jun = 1;
 					}
 
-				bool result_l = Any_Lock(curr_junct, temp_id ,  curr_junct.GetDirection() , (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost, pos,num_jun, poeznoi,true);
+				bool result_l = Any_Lock(curr_junct, temp_id ,  curr_junct.GetDirection() , currJWP.Poshorstnost, pos, num_jun, poeznoi,true);
 
 				//Interface.Log("any_lock_res "+result_l);
 
-				if(!(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).TrainFound and 
-				    !(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).LastTrainVelDir) // поезд ушёл в обратном направлении, то проверки прекращаются ?
+				if(!currJWP.TrainFound and !currJWP.LastTrainVelDir) // поезд ушёл в обратном направлении, то проверки прекращаются ?
 					{
 
 					//Interface.Print("train moved in reverse direction "+BSJunctionLib.DBSE[temp_id].a);
 
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = 0;
+					currJWP.Message_perm = 0;
 					processing_junctions.RemoveNamedTag(temp_id);
 					return;
 					}
@@ -2312,22 +2321,22 @@ void LeavingHandler1(Message msg)
 				if(result_l)
 					{
 
-					if((msg.major == "ObjectLeftCheck") and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm == Path_tmp_nmb))
+					if((msg.major == "ObjectLeftCheck") and (currJWP.Message_perm == Path_tmp_nmb))
 						PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
-					else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
+					else if(currJWP.Message_perm != Path_tmp_nmb)
 						{
 						processing_junctions.SetNamedTag(temp_id,Path_tmp_nmb);
 
 						PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
-						(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = Path_tmp_nmb;
+						currJWP.Message_perm = Path_tmp_nmb;
 						}
 					return;
 					}
 				else
 					{
-					if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos!=0 and (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).JunctPos!=3)
+					if(currJWP.JunctPos!=0 and currJWP.JunctPos!=3)
 						{
-						int other_jn = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction;
+						int other_jn = currJWP.PrevJunction;
 						if(other_jn>=0)
 							{
 	
@@ -2338,17 +2347,17 @@ void LeavingHandler1(Message msg)
 
 								if(msg.major == "ObjectLeftCheck")
 									PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
-								else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
+								else if(currJWP.Message_perm != Path_tmp_nmb)
 									{
 									PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
-									(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = Path_tmp_nmb;
+									currJWP.Message_perm = Path_tmp_nmb;
 									}
 								return;
 								}
 							}
 						}
 
-					Permit tmp_permit = curr_junct.RequestPermit(me, (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection);
+					Permit tmp_permit = curr_junct.RequestPermit(me, currJWP.OldDirection);
 					bool permit_state = tmp_permit.IsGranted();
 					tmp_permit.Release();
 
@@ -2357,13 +2366,13 @@ void LeavingHandler1(Message msg)
 
 						//Interface.Print("Permit cannot released "+BSJunctionLib.DBSE[temp_id].a);
 
-						if((msg.major == "ObjectLeftCheck") and ((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm == Path_tmp_nmb))
+						if((msg.major == "ObjectLeftCheck") and (currJWP.Message_perm == Path_tmp_nmb))
 							PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
-						else if((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm != Path_tmp_nmb)
+						else if(currJWP.Message_perm != Path_tmp_nmb)
 							{
 							processing_junctions.SetNamedTag(temp_id,Path_tmp_nmb);
 							PostMessage( GO , "ObjectLeftCheck", ""+Path_tmp_nmb, 2.0);
-							(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = Path_tmp_nmb;
+							currJWP.Message_perm = Path_tmp_nmb;
 							}
 						return;
 						}
@@ -2374,16 +2383,16 @@ void LeavingHandler1(Message msg)
 
 
 					if(!poeznoi and pos == 0)
-						RemoveNeighbPath(temp_id, (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Poshorstnost,(cast<Junction>GO).GetDirection() );
+						RemoveNeighbPath(temp_id, currJWP.Poshorstnost,(cast<Junction>GO).GetDirection() );
 
 					
 					//Interface.Log("Usual releasing "+junct_name+ " from permit "+Path_tmp_nmb + " with message " + (cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm);
 
 
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = 0;
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
-					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
+					currJWP.Permit_done=0;
+					currJWP.Message_perm = 0;
+					currJWP.PrevJunction= -1;
+					int dir1 =currJWP.OldDirection;
 					curr_junct.SetDirection(dir1);	
 
 					MainChecker();		//проверка	
@@ -2401,9 +2410,9 @@ void LeavingHandler1(Message msg)
 					}
 				else
 					{
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = 0;
-					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
+					currJWP.Permit_done=0;
+					currJWP.Message_perm = 0;
+					currJWP.PrevJunction= -1;
 
 					MainChecker();		//проверка
 					}
