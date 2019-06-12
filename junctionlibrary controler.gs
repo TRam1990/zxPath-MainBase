@@ -642,7 +642,46 @@ thread void InitJunctions_All()
 			}
 		else
 			{
-			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"2"+ST1.GetString("err_info_2")+j_list[i].GetName()+"'<br>";
+			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"2"+ST1.GetString("err_info_2")+j_list[i].GetName() + ST1.GetString("err_info_3");
+
+			bool any_junction = false;
+
+			if(MO_arr[0])
+				{
+				any_junction = true;
+				junct_err_string=junct_err_string+MO_arr[0].GetName();
+				}
+
+
+			if(MO_arr[1])
+				{
+				if(any_junction)
+					junct_err_string=junct_err_string+"', '";
+				any_junction = true;
+				junct_err_string=junct_err_string+MO_arr[1].GetName();
+				}
+
+
+			if(MO_arr[2])
+				{
+				if(any_junction)
+					junct_err_string=junct_err_string+"', '";
+				any_junction = true;
+				junct_err_string=junct_err_string+MO_arr[2].GetName();
+				}
+
+
+			if(MO_arr[3])
+				{
+				if(any_junction)
+					junct_err_string=junct_err_string+"', '";
+				any_junction = true;
+				junct_err_string=junct_err_string+MO_arr[3].GetName();
+				}
+
+
+			junct_err_string=junct_err_string+"'<br>";
+
 			err_numb++;
 			}
 
@@ -964,6 +1003,12 @@ void FromSoupJL(Soup sp7)
 		BSJunctionLib.DBSE[i] = new BinarySortedElementS();
 		BSJunctionLib.DBSE[i].a =J_name;
 		BSJunctionLib.DBSE[i].Object=cast<GSObject>J_element;
+
+		if((i % 400) == 0)
+			{
+			if(TrainzScript.GetTrainzVersion() >= 4.0)
+				Sleep(0.01);
+			}
 		
 		}
 
@@ -1902,7 +1947,7 @@ public Soup GetProperties(void)
 
 thread void Initing1(Soup soup)
 	{
-	Sleep(0.1);
+	Sleep(0.01);
 
 	if(!IsInited)
 		{
