@@ -1973,9 +1973,9 @@ void ProcessMainChecking()
 		if(CheckPath(main_check_i))
 			main_check_i++;
 
-		if((main_check_i % 20) == 0)
+		if((main_check_i % 3) == 0)
 			{
-			PostMessage(me,"SelfTimedMessage", "ProcessMainChecking",0.1);
+			PostMessage(me,"SelfTimedMessage", "ProcessMainChecking",0.0);
 			return;
 			}
 		}
@@ -2601,7 +2601,7 @@ public bool SelfTimedHandler(Message msg)
 		return true;
 		}
 
-	if(msg.minor == "SelfTimedMessage")
+	if(msg.minor == "ProcessMainChecking")
 		{
 		ProcessMainChecking();
 		return true;
