@@ -9,12 +9,15 @@ class JuctionWithProperties isclass GSObject
 
 public MapObject back=null;		//объект сзади
 public int back_dir;			//0 - направление "обратное", 1- направление "прямое", -1 - это стрелка (направление определять по свойствам)
+public string back_name;
 
 public MapObject frontLeft=null;	//объект впереди, по стрелке слева
 public int frontLeft_dir;
+public string frontLeft_name;
 
 public MapObject frontRight=null;	//объект впереди, по стрелке слева
 public int frontRight_dir;
+public string frontRight_name;
 
 public int directionF;			//отклонение : 0 - налево, 2 - направо
 public int OldDirection;
@@ -156,6 +159,9 @@ Browser sub_browser = null;
 bool been_refreshing = false;
 
 
+bool is_uzd_route = false;
+
+
 
 public Soup ToSoupPaths()
 	{
@@ -295,6 +301,12 @@ public bool ThisJPoShorstn(int JunctionPropId, MapObject previous)
 	return false;
 	}
 
+public bool ThisJProtShorstn(int JunctionPropId, MapObject previous)
+	{
+	if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[JunctionPropId]).Object)).back==previous)
+		return true;
+	return false;
+	}
 
 
 public int TrueJdir(int JunctionPropId, MapObject previous)
@@ -307,6 +319,12 @@ public int TrueJdir(int JunctionPropId, MapObject previous)
 
 	return -1;
 	}
+
+
+
+
+
+
 
 
 public void SetJunctionPermit(int JunctionPropId, int NewPermit)
@@ -567,7 +585,7 @@ PostMessage(me, "SelfTimedMessage", "PathMaking", 0.0);
 										MO=GSTS1.SearchNext();
 										TempStrDir = GSTS1.GetFacingRelativeToSearchDirection();
 
-										while(MO and !MO.isclass(Junction) and !(MO.isclass(zxSignal) and (  (cast<zxSignal>MO).Type & (2+4+8)  ) )    )
+										while(MO and !MO.isclass(Junction) and !(MO.isclass(zxSignal) and (  (cast<zxSignal>MO).Type & (zxSignal.ST_IN|zxSignal.ST_OUT|zxSignal.ST_ROUTER)  ) )    )
 											{
 											MO=GSTS1.SearchNext();
 											TempStrDir = GSTS1.GetFacingRelativeToSearchDirection();
@@ -979,7 +997,7 @@ void LockThisPath(string ST_name, int SignalId, int pathN, string pathID)
 		MapObject MO2 = MO;
 
 
-		while(MO2 and !MO2.isclass(Junction) and !( MO2.isclass(zxSignal) and !dir1  and ((cast<zxSignal>MO2).Type & (zxSignal.ST_IN+zxSignal.ST_OUT+zxSignal.ST_ROUTER))  ) )
+		while(MO2 and !MO2.isclass(Junction) and !( MO2.isclass(zxSignal) and !dir1  and ((cast<zxSignal>MO2).Type & (zxSignal.ST_IN|zxSignal.ST_OUT|zxSignal.ST_ROUTER))  ) )
 			{
 			MO2 = GSTS2.SearchNext();
 			dir1 = GSTS2.GetFacingRelativeToSearchDirection();
@@ -1105,8 +1123,12 @@ void RemovePath(int PathName)
 					{
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
-					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
-					(cast<Junction>Router.GetGameObject(BSJunctionLib.DBSE[temp_id].a)).SetDirection(dir1);	
+
+					if(!is_uzd_route)
+						{
+						int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
+						(cast<Junction>Router.GetGameObject(BSJunctionLib.DBSE[temp_id].a)).SetDirection(dir1);
+						}
 					}
 				else
 					other_path = true;
@@ -1204,15 +1226,18 @@ public bool ChangeSpanDirectionFor(string ST_name, int SignalId, int pathN)
 							{
 							JuctionWithProperties JWP1=cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id3].Object);
 
-							int direction=(cast<Junction>MO8).GetDirection();
-
-
-
-							if(    (prev==JWP1.back and JWP1.Poshorstnost) or (prev==JWP1.frontLeft and direction==0 and !JWP1.Poshorstnost ) or (prev==JWP1.frontRight and direction==2 and !JWP1.Poshorstnost)  )
-								return false;
+							if(ThisJProtShorstn(temp_id3, prev))
+								{
+								if(JWP1.Poshorstnost)
+									return false;
+								}
 							else
-								return sign1.Switch_span();
+								{
+								if(!JWP1.Poshorstnost and TrueJdir(temp_id3, prev)==(cast<Junction>MO8).GetDirection())		// если стрелка с маршрутом переведена в том же направлении, которое ведёт к prev
+									return false;
+								}
 
+							return sign1.Switch_span();
 							}
 						}
 					}
@@ -1299,7 +1324,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 					else if(MO1.isclass(Trigger) and !(MO1.GetProperties().GetNamedTagAsInt("zxPath_lock",-1)<0 or remove))
 						return true;
 
-					is_train_signal = (MO1.isclass(zxSignal) and !GSTS.GetFacingRelativeToSearchDirection() and ( (cast<zxSignal>MO1).Type & (2+4+8) ));
+					is_train_signal = (MO1.isclass(zxSignal) and !GSTS.GetFacingRelativeToSearchDirection() and ( (cast<zxSignal>MO1).Type & (zxSignal.ST_IN|zxSignal.ST_OUT|zxSignal.ST_ROUTER) ));
 					}	
 				}
 
@@ -1508,12 +1533,20 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 	if(poshorstn)
 		{	
 		GSTS=JN.BeginTrackSearch(JunctionBase.DIRECTION_BACKWARD);
-		min_dist = 5;
+
+		if(is_uzd_route)
+			min_dist = 3;
+		else
+			min_dist = 5;
 		}
 	else	
 		{	
 		GSTS=JN.BeginTrackSearch(dir1);
-		min_dist = 40;
+
+		if(is_uzd_route)
+			min_dist = 10;
+		else
+			min_dist = 40;
 		}
 
 	MO1=me;
@@ -1561,7 +1594,7 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 
 		MO1=me;
 			
-		while(MO1 and !MO1.isclass(Junction)  and !(MO1.isclass(zxSignal) and ( (cast<zxSignal>MO1).Type & (2+4+8)))) // направление светофора не важно
+		while(MO1 and !MO1.isclass(Junction)  and !(MO1.isclass(zxSignal) and ( (cast<zxSignal>MO1).Type & (zxSignal.ST_IN|zxSignal.ST_OUT|zxSignal.ST_ROUTER)))) // направление светофора не важно
 			{
 			MO1=GSTS.SearchNext();
 	
@@ -1619,14 +1652,11 @@ public bool Any_Lock(Junction JN2, int id1, int dir1, bool poshorstn,int i,int n
 			return false;
 			}
 
-		int next_dir = JunctionBase.DIRECTION_BACKWARD;
 
-		MO0 = cast<MapObject>JN2;
+		int next_dir = TrueJdir(other_id, cast<MapObject>JN2);
+		if(next_dir < 0)
+			next_dir = JunctionBase.DIRECTION_BACKWARD;
 
-		if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[other_id]).Object)).frontLeft==MO0)
-			next_dir = 0;
-		else if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[other_id]).Object)).frontRight==MO0)
-			next_dir = 2;
 
 		GSTS=(cast<JunctionBase>(cast<Junction>MO1)).BeginTrackSearch(next_dir);
 		}
@@ -1709,14 +1739,10 @@ public bool Simple_Lock(Junction JN, int id1)
 		if(other_id < 0)
 			return false;
 
-		int next_dir = JunctionBase.DIRECTION_BACKWARD;
 
-		MapObject MO0 = cast<MapObject>JN;
-
-		if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[other_id]).Object)).frontLeft==MO0)
-			next_dir = 0;
-		else if((cast<JuctionWithProperties>((BSJunctionLib.DBSE[other_id]).Object)).frontRight==MO0)
-			next_dir = 2;
+		int next_dir = TrueJdir(other_id, cast<MapObject>JN);
+		if(next_dir < 0)
+			next_dir = JunctionBase.DIRECTION_BACKWARD;
 
 		GSTS=(cast<JunctionBase>(cast<Junction>MO1)).BeginTrackSearch(next_dir);
 		}
@@ -1900,17 +1926,16 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 //Interface.Log(er45);
 
 
-							if(prev==JWP1.back and JWP1.Poshorstnost   )
-								return false;
-
-							int direction=J453.GetDirection();
-
-							if(prev==JWP1.frontLeft and direction==0 and !JWP1.Poshorstnost )
-								return false;
-
-							if(prev==JWP1.frontRight and direction==2 and !JWP1.Poshorstnost )
-								return false;
-
+							if(ThisJProtShorstn(j_id1, prev))
+								{
+								if(JWP1.Poshorstnost)
+									return false;
+								}
+							else
+								{
+								if(!JWP1.Poshorstnost and TrueJdir(j_id1, prev)==(cast<Junction>MO8).GetDirection())		// если стрелка с маршрутом переведена в том же направлении, которое ведёт к prev
+									return false;
+								}
 							}
 						}
 					}
@@ -2248,8 +2273,12 @@ public bool RemoveNeighbPath(int temp_id, bool poshorstn, int dir1)
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Permit_done=0;
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).Message_perm = 0;
 					(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).PrevJunction= -1;
-					int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
-					(cast<Junction>Router.GetGameObject(BSJunctionLib.DBSE[temp_id].a)).SetDirection(dir1);	
+
+					if(!is_uzd_route)
+						{
+						int dir1 =(cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id].Object)).OldDirection;
+						(cast<Junction>Router.GetGameObject(BSJunctionLib.DBSE[temp_id].a)).SetDirection(dir1);	
+						}
 					}
 				else
 					other_path = true;
@@ -2498,8 +2527,12 @@ void LeavingHandler1(Message msg)
 					currJWP.Permit_done=0;
 					currJWP.Message_perm = 0;
 					currJWP.PrevJunction= -1;
-					int dir1 =currJWP.OldDirection;
-					curr_junct.SetDirection(dir1);	
+
+					if(!is_uzd_route)
+						{
+						int dir1 =currJWP.OldDirection;
+						curr_junct.SetDirection(dir1);	
+						}
 
 					MainChecker();		//проверка	
 					}

@@ -6,6 +6,7 @@ include "browser.gs"
 class JunctionInitingObj
 {
 	public bool is_initing = false;
+	public bool in_check = false;
 
 	public int i;
 	public int old_i;
@@ -171,6 +172,16 @@ class DeleteLongPathAllObj
 
 
 
+
+
+class UniqueNamedObjElem isclass GSObject
+{
+	public MapObject obj_itself;
+	public string JunctionName;
+};
+
+
+
 class zxMainJunctionController isclass zxMainJunctionControllerBase
 {
 
@@ -191,6 +202,7 @@ void RefreshBrowser();
 
 bool Br_mode = false;
 string junct_err_string="";
+string junc_error2 = "";
 
 
 
@@ -217,6 +229,11 @@ void MainShowSignals();
 
 bool Junct_init=false;
 bool Sign_init = false;
+
+
+
+BinarySortedArrayS unique_objBS;
+
 
 
 void ResetJunctions()
@@ -283,7 +300,10 @@ void ProcessInitSignals()
 					string station_name = Sign.stationName;
 					string signal_name = Sign.privateName;
 
-					if(sign_type>=1 and !(sign_type&32) and station_name!=""  and (!(sign_type&16) or sign_type&4  ))
+					if(		 (sign_type&zxSignal.ST_UNTYPED) and 
+							!(sign_type&zxSignal.ST_PERMOPENED) and 
+							station_name!=""  and 
+							(!(sign_type&zxSignal.ST_UNLINKED) or (sign_type&(zxSignal.ST_IN|zxSignal.ST_OUT|zxSignal.ST_ROUTER))  ))
 						{
 						signal_init.Station_id=StationProperties.GetNamedTagAsInt(station_name,-1);
 				
@@ -646,429 +666,580 @@ JunctionInitingObj junct_initing = new JunctionInitingObj();
 
 void ProcessJunctionIniting()
 	{
-
-	while(junct_initing.i < junct_initing.j_list.size())
+	if(!junct_initing.in_check)
 		{
 
-
-		junct_initing.q++;
-		if(junct_initing.q>5)
+		while(junct_initing.i < junct_initing.j_list.size())
 			{
-			junct_initing.qq++;
 
-			if(junct_initing.qq>3)
+
+			junct_initing.q++;
+			if(junct_initing.q>5)
 				{
+				junct_initing.qq++;
 
-				Calculated=ST1.GetString("now")+(string)(junct_initing.i*100/junct_initing.j_list.size())+"%";
+				if(junct_initing.qq>3)
+					{
+
+					Calculated=ST1.GetString("now")+(string)(junct_initing.i*50/junct_initing.j_list.size())+"%";
 
 
-				PostMessage(me,"Refresh","now",0);
-				if(sub_browser and !been_refreshing)
-					PropertyBrowserRefresh(sub_browser);
+					PostMessage(me,"Refresh","now",0);
+					if(sub_browser and !been_refreshing)
+						PropertyBrowserRefresh(sub_browser);
 
-				junct_initing.qq = 0;
+					junct_initing.qq = 0;
+
+					PostMessage(me, "SelfTimedMessage", "ProcessJunctionIniting", 0.0);
+					return;
+					}
+
+				junct_initing.q=0;
+
 
 				PostMessage(me, "SelfTimedMessage", "ProcessJunctionIniting", 0.0);
 				return;
 				}
 
-			junct_initing.q=0;
 
 
-			PostMessage(me, "SelfTimedMessage", "ProcessJunctionIniting", 0.0);
-			return;
-			}
+			bool add_element = false;
+
+			int JunctionID1=FindJunctionPropertiesId(junct_initing.j_list[junct_initing.i]);
+
+			JuctionWithProperties J_element;
+
+			if(JunctionID1 >= 0)
+				{
+				J_element = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[JunctionID1].Object));
+				}
+			else
+				{
+
+		 		J_element = new JuctionWithProperties();
+				add_element = true;
+				}
 
 
-
-		bool add_element = false;
-
-		int JunctionID1=FindJunctionPropertiesId(junct_initing.j_list[junct_initing.i]);
-
-		JuctionWithProperties J_element;
-
-		if(JunctionID1 >= 0)
-			{
-			J_element = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[JunctionID1].Object));
-			}
-		else
-			{
-
-		 	J_element = new JuctionWithProperties();
-			add_element = true;
-			}
-
-
-		bool broken1 = false;
+			bool broken1 = false;
 		
-		junct_initing.OldDir=junct_initing.j_list[junct_initing.i].GetDirection();
+			junct_initing.OldDir=junct_initing.j_list[junct_initing.i].GetDirection();
 
-		J_element.OldDirection=junct_initing.OldDir;
+			J_element.OldDirection=junct_initing.OldDir;
 
-		junct_initing.j_list[junct_initing.i].SetDirection(Junction.DIRECTION_LEFT);
+			junct_initing.j_list[junct_initing.i].SetDirection(Junction.DIRECTION_LEFT);
 
-		junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(true);
+			junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(true);
 
-		junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
-		while(junct_initing.MO_arr[0] and (junct_initing.MO_arr[0].GetName()=="" or junct_initing.MO_arr[0].isclass(Vehicle) or !junct_initing.MO_arr[0].isclass(Trackside)))
- 			junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
+			junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
+			while(junct_initing.MO_arr[0] and (junct_initing.MO_arr[0].GetName()=="" or junct_initing.MO_arr[0].isclass(Vehicle) or !junct_initing.MO_arr[0].isclass(Trackside)))
+ 				junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
 
-		if(junct_initing.MO_arr[0])
-			junct_initing.Obj_direction[0]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
-		else
-			broken1 = true;
+			if(junct_initing.MO_arr[0])
+				junct_initing.Obj_direction[0]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
+			else
+				broken1 = true;
 
 	
-		junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(false);
+			junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(false);
 
-		junct_initing.MO_arr[1]=junct_initing.GSTS_Initing.SearchNext();
-		while(junct_initing.MO_arr[1] and (junct_initing.MO_arr[1].GetName()=="" or junct_initing.MO_arr[1].isclass(Vehicle) or !junct_initing.MO_arr[1].isclass(Trackside)))
 			junct_initing.MO_arr[1]=junct_initing.GSTS_Initing.SearchNext();
+			while(junct_initing.MO_arr[1] and (junct_initing.MO_arr[1].GetName()=="" or junct_initing.MO_arr[1].isclass(Vehicle) or !junct_initing.MO_arr[1].isclass(Trackside)))
+				junct_initing.MO_arr[1]=junct_initing.GSTS_Initing.SearchNext();
  
-		if(junct_initing.MO_arr[1])
-			junct_initing.Obj_direction[1]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
-		else
-			broken1 = true;
+			if(junct_initing.MO_arr[1])
+				junct_initing.Obj_direction[1]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
+			else
+				broken1 = true;
 
 
-		junct_initing.j_list[junct_initing.i].SetDirection(Junction.DIRECTION_RIGHT);
+			junct_initing.j_list[junct_initing.i].SetDirection(Junction.DIRECTION_RIGHT);
 
-		junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(true);
+			junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(true);
 
-		junct_initing.MO_arr[2]=junct_initing.GSTS_Initing.SearchNext(); 
-		while(junct_initing.MO_arr[2] and (junct_initing.MO_arr[2].GetName()=="" or junct_initing.MO_arr[2].isclass(Vehicle) or !junct_initing.MO_arr[2].isclass(Trackside)))
-			junct_initing.MO_arr[2]=junct_initing.GSTS_Initing.SearchNext();
+			junct_initing.MO_arr[2]=junct_initing.GSTS_Initing.SearchNext(); 
+			while(junct_initing.MO_arr[2] and (junct_initing.MO_arr[2].GetName()=="" or junct_initing.MO_arr[2].isclass(Vehicle) or !junct_initing.MO_arr[2].isclass(Trackside)))
+				junct_initing.MO_arr[2]=junct_initing.GSTS_Initing.SearchNext();
 
-		if(junct_initing.MO_arr[2])
-			junct_initing.Obj_direction[2]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
-		else
-			broken1 = true;
+			if(junct_initing.MO_arr[2])
+				junct_initing.Obj_direction[2]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
+			else
+				broken1 = true;
 
 		
-		junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(false);
+			junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(false);
 
-		junct_initing.MO_arr[3]=junct_initing.GSTS_Initing.SearchNext(); 
-		while(junct_initing.MO_arr[3] and (junct_initing.MO_arr[3].GetName()=="" or junct_initing.MO_arr[3].isclass(Vehicle) or !junct_initing.MO_arr[3].isclass(Trackside)))
-			junct_initing.MO_arr[3]=junct_initing.GSTS_Initing.SearchNext();
-
-		if(junct_initing.MO_arr[3])
-			junct_initing.Obj_direction[3]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
-		else
-			broken1 = true;
-
-		junct_initing.j_list[junct_initing.i].SetDirection(junct_initing.OldDir);
-
-		if(!junct_initing.MO_arr[0] and junct_initing.MO_arr[1] and junct_initing.MO_arr[2] and junct_initing.MO_arr[3])
-			{
-			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3") +junct_initing.MO_arr[1].GetName() +"', '"+ junct_initing.MO_arr[2].GetName() +"', '"+ junct_initing.MO_arr[3].GetName()+"<br>";
-			junct_initing.err_numb++;
-			}
-		else if(junct_initing.MO_arr[0] and !junct_initing.MO_arr[1] and junct_initing.MO_arr[2] and junct_initing.MO_arr[3])
-			{
-			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[2].GetName() +"', '"+ junct_initing.MO_arr[3].GetName()+"'<br>";
-			junct_initing.err_numb++;
-			}
-		else if(junct_initing.MO_arr[0] and junct_initing.MO_arr[1] and !junct_initing.MO_arr[2] and junct_initing.MO_arr[3])
-			{
-			junct_err_string=junct_err_string+ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName() +"', '"+ junct_initing.MO_arr[3].GetName()+"'<br>";
-			junct_initing.err_numb++;
-			}
-		else if(junct_initing.MO_arr[0] and junct_initing.MO_arr[1] and junct_initing.MO_arr[2] and !junct_initing.MO_arr[3])
-			{
-			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName() +"', '"+ junct_initing.MO_arr[2].GetName()+"'<br>";
-			junct_initing.err_numb++;
-			}
-		else if(!broken1)
-			{
-			if(junct_initing.MO_arr[0] == junct_initing.MO_arr[1] and junct_initing.MO_arr[2] == junct_initing.MO_arr[3])
-				{
-				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[2].GetName()+"'<br>";
-				junct_initing.err_numb++;
-				}
-			else if(junct_initing.MO_arr[0] == junct_initing.MO_arr[2] and junct_initing.MO_arr[1] == junct_initing.MO_arr[3])
-				{
-				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName()+"'<br>";
-				junct_initing.err_numb++;
-				}
-			else if(junct_initing.MO_arr[0] == junct_initing.MO_arr[3] and junct_initing.MO_arr[1] == junct_initing.MO_arr[2])
-				{
-				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName()+"'<br>";
-				junct_initing.err_numb++;
-				}
-
-			}
-		else
-			{
-			junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"2"+ST1.GetString("err_info_2")+junct_initing.j_list[junct_initing.i].GetName() + ST1.GetString("err_info_3");
-
-			bool any_junction = false;
-
-			if(junct_initing.MO_arr[0])
-				{
-				any_junction = true;
-				junct_err_string=junct_err_string+junct_initing.MO_arr[0].GetName();
-				}
-
-
-			if(junct_initing.MO_arr[1])
-				{
-				if(any_junction)
-					junct_err_string=junct_err_string+"', '";
-				any_junction = true;
-				junct_err_string=junct_err_string+junct_initing.MO_arr[1].GetName();
-				}
-
-
-			if(junct_initing.MO_arr[2])
-				{
-				if(any_junction)
-					junct_err_string=junct_err_string+"', '";
-				any_junction = true;
-				junct_err_string=junct_err_string+junct_initing.MO_arr[2].GetName();
-				}
-
+			junct_initing.MO_arr[3]=junct_initing.GSTS_Initing.SearchNext(); 
+			while(junct_initing.MO_arr[3] and (junct_initing.MO_arr[3].GetName()=="" or junct_initing.MO_arr[3].isclass(Vehicle) or !junct_initing.MO_arr[3].isclass(Trackside)))
+				junct_initing.MO_arr[3]=junct_initing.GSTS_Initing.SearchNext();
 
 			if(junct_initing.MO_arr[3])
-				{
-				if(any_junction)
-					junct_err_string=junct_err_string+"', '";
-				any_junction = true;
-				junct_err_string=junct_err_string+junct_initing.MO_arr[3].GetName();
-				}
-
-
-			junct_err_string=junct_err_string+"'<br>";
-
-			junct_initing.err_numb++;
-			}
-
-
-		if(junct_initing.MO_arr[1] and junct_initing.MO_arr[1]==junct_initing.MO_arr[3])
-			{
-			if(junct_initing.MO_arr[1].isclass(Junction))
-				J_element.back_dir=-1;
+				junct_initing.Obj_direction[3]=  junct_initing.GSTS_Initing.GetFacingRelativeToSearchDirection();
 			else
-				{
-				if(junct_initing.Obj_direction[1])
-					J_element.back_dir=1;
-				else
-					J_element.back_dir=0;
-				}
-			J_element.back=junct_initing.MO_arr[1];
+				broken1 = true;
 
-			if(junct_initing.MO_arr[0])
+			junct_initing.j_list[junct_initing.i].SetDirection(junct_initing.OldDir);
+
+			if(!junct_initing.MO_arr[0] and junct_initing.MO_arr[1] and junct_initing.MO_arr[2] and junct_initing.MO_arr[3])
 				{
-				if(junct_initing.MO_arr[0].isclass(Junction))
-					J_element.frontLeft_dir=-1;
-				else
+				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3") +junct_initing.MO_arr[1].GetName() +"', '"+ junct_initing.MO_arr[2].GetName() +"', '"+ junct_initing.MO_arr[3].GetName()+"<br>";
+				junct_initing.err_numb++;
+				}
+			else if(junct_initing.MO_arr[0] and !junct_initing.MO_arr[1] and junct_initing.MO_arr[2] and junct_initing.MO_arr[3])
+				{
+				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[2].GetName() +"', '"+ junct_initing.MO_arr[3].GetName()+"'<br>";
+				junct_initing.err_numb++;
+				}
+			else if(junct_initing.MO_arr[0] and junct_initing.MO_arr[1] and !junct_initing.MO_arr[2] and junct_initing.MO_arr[3])
+				{
+				junct_err_string=junct_err_string+ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName() +"', '"+ junct_initing.MO_arr[3].GetName()+"'<br>";
+				junct_initing.err_numb++;
+				}
+			else if(junct_initing.MO_arr[0] and junct_initing.MO_arr[1] and junct_initing.MO_arr[2] and !junct_initing.MO_arr[3])
+				{
+				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"1"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName() +"', '"+ junct_initing.MO_arr[2].GetName()+"'<br>";
+				junct_initing.err_numb++;
+				}
+			else if(!broken1)
+				{
+				if(junct_initing.MO_arr[0] == junct_initing.MO_arr[1] and junct_initing.MO_arr[2] == junct_initing.MO_arr[3])
 					{
-					if(junct_initing.Obj_direction[0])
-						J_element.frontLeft_dir=1;
-					else
-						J_element.frontLeft_dir=0;
+					junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[2].GetName()+"'<br>";
+					junct_initing.err_numb++;
+					}
+				else if(junct_initing.MO_arr[0] == junct_initing.MO_arr[2] and junct_initing.MO_arr[1] == junct_initing.MO_arr[3])
+					{
+					junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName()+"'<br>";
+					junct_initing.err_numb++;
+					}
+				else if(junct_initing.MO_arr[0] == junct_initing.MO_arr[3] and junct_initing.MO_arr[1] == junct_initing.MO_arr[2])
+					{
+					junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"3"+ST1.GetString("err_info_2")+ junct_initing.j_list[junct_initing.i].GetName()+ ST1.GetString("err_info_3")+junct_initing.MO_arr[0].GetName() +"', '"+ junct_initing.MO_arr[1].GetName()+"'<br>";
+					junct_initing.err_numb++;
 					}
 
-				J_element.frontLeft=junct_initing.MO_arr[0];
 				}
 			else
 				{
-				J_element.frontLeft_dir=1;
-				J_element.frontLeft=null;
-				}
+				junct_err_string=junct_err_string+ ST1.GetString("err_info_1")+"2"+ST1.GetString("err_info_2")+junct_initing.j_list[junct_initing.i].GetName() + ST1.GetString("err_info_3");
 
-			if(junct_initing.MO_arr[2])
-				{
-				if(junct_initing.MO_arr[2].isclass(Junction))
-					J_element.frontRight_dir=-1;
-				else
+				bool any_junction = false;
+
+				if(junct_initing.MO_arr[0])
 					{
-					if(junct_initing.Obj_direction[2])
-						J_element.frontRight_dir=1;
-					else
-						J_element.frontRight_dir=0;
+					any_junction = true;
+					junct_err_string=junct_err_string+junct_initing.MO_arr[0].GetName();
 					}
 
-				J_element.frontRight=junct_initing.MO_arr[2];
+
+				if(junct_initing.MO_arr[1])
+					{
+					if(any_junction)
+						junct_err_string=junct_err_string+"', '";
+					any_junction = true;
+					junct_err_string=junct_err_string+junct_initing.MO_arr[1].GetName();
+					}
+
+
+				if(junct_initing.MO_arr[2])
+					{
+					if(any_junction)
+						junct_err_string=junct_err_string+"', '";
+					any_junction = true;
+					junct_err_string=junct_err_string+junct_initing.MO_arr[2].GetName();
+					}
+
+
+				if(junct_initing.MO_arr[3])
+					{
+					if(any_junction)
+						junct_err_string=junct_err_string+"', '";
+					any_junction = true;
+					junct_err_string=junct_err_string+junct_initing.MO_arr[3].GetName();
+					}
+
+
+				junct_err_string=junct_err_string+"'<br>";
+
+				junct_initing.err_numb++;
 				}
-			else
-				{
-				J_element.frontRight=null;
-				J_element.frontRight_dir=1;
-				}
 
 
-			}
-
-
-
-		if(junct_initing.MO_arr[0] and junct_initing.MO_arr[0]==junct_initing.MO_arr[2])
-			{
-			if(junct_initing.MO_arr[0].isclass(Junction))
-				J_element.back_dir=-1;
-			else
-				{
-				if(junct_initing.Obj_direction[0])
-					J_element.back_dir=1;
-				else
-					J_element.back_dir=0;
-				}
-			J_element.back=junct_initing.MO_arr[0];
-
-
-			if(junct_initing.MO_arr[1])
+			if(junct_initing.MO_arr[1] and junct_initing.MO_arr[1]==junct_initing.MO_arr[3])
 				{
 				if(junct_initing.MO_arr[1].isclass(Junction))
-					J_element.frontLeft_dir=-1;
+					J_element.back_dir=-1;
 				else
 					{
 					if(junct_initing.Obj_direction[1])
-						J_element.frontLeft_dir=1;
+						J_element.back_dir=1;
 					else
-						J_element.frontLeft_dir=0;
+						J_element.back_dir=0;
 					}
+				J_element.back=junct_initing.MO_arr[1];
 
-				J_element.frontLeft=junct_initing.MO_arr[1];
-				}
-			else
-				{
-				J_element.frontLeft_dir=1;
-				J_element.frontLeft=null;
-				}
+				if(junct_initing.MO_arr[0])
+					{
+					if(junct_initing.MO_arr[0].isclass(Junction))
+						J_element.frontLeft_dir=-1;
+					else
+						{
+						if(junct_initing.Obj_direction[0])
+							J_element.frontLeft_dir=1;
+						else
+							J_element.frontLeft_dir=0;
+						}
 
-			
-			if(junct_initing.MO_arr[3])
-				{
-				if(junct_initing.MO_arr[3].isclass(Junction))
-					J_element.frontRight_dir=-1;
+					J_element.frontLeft=junct_initing.MO_arr[0];
+					}
 				else
 					{
-					if(junct_initing.Obj_direction[3])
-						J_element.frontRight_dir=1;
-					else
-						J_element.frontRight_dir=0;
+					J_element.frontLeft_dir=1;
+					J_element.frontLeft=null;
 					}
-				J_element.frontRight=junct_initing.MO_arr[3];
+
+				if(junct_initing.MO_arr[2])
+					{
+					if(junct_initing.MO_arr[2].isclass(Junction))
+						J_element.frontRight_dir=-1;
+					else
+						{
+						if(junct_initing.Obj_direction[2])
+							J_element.frontRight_dir=1;
+						else
+							J_element.frontRight_dir=0;
+						}
+
+					J_element.frontRight=junct_initing.MO_arr[2];
+					}
+				else
+					{
+					J_element.frontRight=null;
+					J_element.frontRight_dir=1;
+					}
+
+
 				}
-			else
+
+
+
+			if(junct_initing.MO_arr[0] and junct_initing.MO_arr[0]==junct_initing.MO_arr[2])
 				{
-				J_element.frontRight=null;
-				J_element.frontRight_dir=1;
+				if(junct_initing.MO_arr[0].isclass(Junction))
+					J_element.back_dir=-1;
+				else
+					{
+					if(junct_initing.Obj_direction[0])
+						J_element.back_dir=1;
+					else
+						J_element.back_dir=0;
+					}
+				J_element.back=junct_initing.MO_arr[0];
+
+
+				if(junct_initing.MO_arr[1])
+					{
+					if(junct_initing.MO_arr[1].isclass(Junction))
+						J_element.frontLeft_dir=-1;
+					else
+						{
+						if(junct_initing.Obj_direction[1])
+							J_element.frontLeft_dir=1;
+						else
+							J_element.frontLeft_dir=0;
+						}
+
+					J_element.frontLeft=junct_initing.MO_arr[1];
+					}
+				else
+					{
+					J_element.frontLeft_dir=1;
+					J_element.frontLeft=null;
+					}
+
+			
+				if(junct_initing.MO_arr[3])
+					{
+					if(junct_initing.MO_arr[3].isclass(Junction))
+						J_element.frontRight_dir=-1;
+					else
+						{
+						if(junct_initing.Obj_direction[3])
+							J_element.frontRight_dir=1;
+						else
+							J_element.frontRight_dir=0;
+						}
+					J_element.frontRight=junct_initing.MO_arr[3];
+					}
+				else
+					{
+					J_element.frontRight=null;
+					J_element.frontRight_dir=1;
+					}
+
 				}
 
-			}
+
+			J_element.Permit_done=0;
+			J_element.Poshorstnost=false;
+			J_element.JunctPos=1;
 
 
-		J_element.Permit_done=0;
-		J_element.Poshorstnost=false;
-		J_element.JunctPos=1;
-
-
-		junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(true);
-		junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
-
-		junct_initing.p=0;
-		while(junct_initing.MO_arr[0] and junct_initing.MO_arr[0].isclass(Trackside) and junct_initing.p<3)
-			{
+			junct_initing.GSTS_Initing=junct_initing.j_list[junct_initing.i].BeginTrackSearch(true);
 			junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
-			junct_initing.p++;
-			}
-		if(junct_initing.MO_arr[0] and !junct_initing.MO_arr[0].isclass(Trackside))
-			{
-			string J_obj_name = junct_initing.MO_arr[0].GetAsset().GetConfigSoup().GetNamedTag("username");
-			Str.ToUpper(J_obj_name);
-			if(J_obj_name[J_obj_name.size()-2,]=="_L" or J_obj_name[J_obj_name.size()-2,]==" L" or J_obj_name[J_obj_name.size()-3,J_obj_name.size()-1]=="_L")
-				J_element.directionF=0;
+
+			junct_initing.p=0;
+			while(junct_initing.MO_arr[0] and junct_initing.MO_arr[0].isclass(Trackside) and junct_initing.p<3)
+				{
+				junct_initing.MO_arr[0]=junct_initing.GSTS_Initing.SearchNext();
+				junct_initing.p++;
+				}
+			if(junct_initing.MO_arr[0] and !junct_initing.MO_arr[0].isclass(Trackside))
+				{
+				string J_obj_name = junct_initing.MO_arr[0].GetAsset().GetConfigSoup().GetNamedTag("username");
+				Str.ToUpper(J_obj_name);
+				if(J_obj_name[J_obj_name.size()-2,]=="_L" or J_obj_name[J_obj_name.size()-2,]==" L" or J_obj_name[J_obj_name.size()-3,J_obj_name.size()-1]=="_L")
+					J_element.directionF=0;
+				else
+					J_element.directionF=2;
+				}
 			else
 				J_element.directionF=2;
+
+
+
+			if(add_element)
+				{
+				string j_name = junct_initing.j_list[junct_initing.i].GetName();
+				BSJunctionLib.AddElement(j_name,(cast<GSObject>(J_element)));
+
+
+				if(J_element.back)
+					{
+					J_element.back_name = (J_element.back).GetName();
+					cache2.SetNamedTag(j_name+".back",J_element.back_name);
+					cache2.SetNamedTag(j_name+".back_dir",J_element.back_dir);
+					}
+
+				if(J_element.frontLeft)
+					{
+					J_element.frontLeft_name = (J_element.frontLeft).GetName();
+					cache2.SetNamedTag(j_name+".frontLeft",J_element.frontLeft_name);
+					cache2.SetNamedTag(j_name+".frontLeft_dir",J_element.frontLeft_dir);
+					}
+
+				if(J_element.frontRight)
+					{
+					J_element.frontRight_name = (J_element.frontRight).GetName();
+					cache2.SetNamedTag(j_name+".frontRight",J_element.frontRight_name);
+					cache2.SetNamedTag(j_name+".frontRight_dir",J_element.frontRight_dir);
+					}
+
+				cache2.SetNamedTag(j_name+".OldDirection",J_element.OldDirection);
+				cache2.SetNamedTag(j_name+".directionF",J_element.directionF);
+
+				cache2.SetNamedTag(j_name+".Permit_done",J_element.Permit_done);
+				cache2.SetNamedTag(j_name+".Poshorstnost",J_element.Poshorstnost);
+				cache2.SetNamedTag(j_name+".JunctPos",J_element.JunctPos);
+				cache2.SetNamedTag(j_name+".PrevJunction",J_element.PrevJunction);
+				cache2.SetNamedTag(j_name+".LastTrainVelDir",J_element.LastTrainVelDir);
+
+
+				//cache2.SetNamedTag("soup_name_"+i,j_name);		// номера в базе ещё не актуальные
+
+				}
+
+			junct_initing.old_i = junct_initing.i;
+			junct_initing.i++;
 			}
-		else
-			J_element.directionF=2;
+
+		IsInited=true;
+
+
+		int i;
+		for(i=0;i<BSJunctionLib.N;i++)
+			cache2.SetNamedTag("soup_name_"+i, BSJunctionLib.DBSE[i].a);	// актуализация номеров
+
+
+		cache2.SetNamedTag("my_volume1",(int)(BSJunctionLib.N));
+
+		junct_initing.MO_arr[0,4] = null;
 
 
 
-		if(add_element)
-			{
-			string j_name = junct_initing.j_list[junct_initing.i].GetName();
-			BSJunctionLib.AddElement(j_name,(cast<GSObject>(J_element)));
+		junct_initing.in_check = true;
 
 
-			if(J_element.back)
-				{
-				cache2.SetNamedTag(j_name+".back",(J_element.back).GetName());
-				cache2.SetNamedTag(j_name+".back_dir",J_element.back_dir);
-				}
-
-			if(J_element.frontLeft)
-				{
-				cache2.SetNamedTag(j_name+".frontLeft",(J_element.frontLeft).GetName());
-				cache2.SetNamedTag(j_name+".frontLeft_dir",J_element.frontLeft_dir);
-				}
-
-			if(J_element.frontRight)
-				{
-				cache2.SetNamedTag(j_name+".frontRight",(J_element.frontRight).GetName());
-				cache2.SetNamedTag(j_name+".frontRight_dir",J_element.frontRight_dir);
-				}
-
-			cache2.SetNamedTag(j_name+".OldDirection",J_element.OldDirection);
-			cache2.SetNamedTag(j_name+".directionF",J_element.directionF);
-
-			cache2.SetNamedTag(j_name+".Permit_done",J_element.Permit_done);
-			cache2.SetNamedTag(j_name+".Poshorstnost",J_element.Poshorstnost);
-			cache2.SetNamedTag(j_name+".JunctPos",J_element.JunctPos);
-			cache2.SetNamedTag(j_name+".PrevJunction",J_element.PrevJunction);
-			cache2.SetNamedTag(j_name+".LastTrainVelDir",J_element.LastTrainVelDir);
-
-
-			//cache2.SetNamedTag("soup_name_"+i,j_name);		// номера в базе ещё не актуальные
-
-			}
-
+		junct_initing.i = 0;
 		junct_initing.old_i = junct_initing.i;
-		junct_initing.i++;
+
+
+		PostMessage(me, "SelfTimedMessage", "ProcessJunctionIniting", 0.0);
+
 		}
-
-	IsInited=true;
-
-
-	int i;
-	for(i=0;i<BSJunctionLib.N;i++)
-		cache2.SetNamedTag("soup_name_"+i, BSJunctionLib.DBSE[i].a);	// актуализация номеров
-
-
-	cache2.SetNamedTag("my_volume1",(int)(BSJunctionLib.N));
-
-
-
-	junct_initing.MO_arr[0,4] = null;
-
-
-	if(junct_err_string!="")
+	else
 		{
 
-		junct_err_string = ST1.GetString("junct_err_info")+ ST1.GetString("err_numb") +junct_initing.err_numb+"<br><br>" +junct_err_string;
+		while(junct_initing.i < BSJunctionLib.N)
+			{
 
-		Br_mode = true;
-		MainShowSignals();
+
+			junct_initing.q++;
+			if(junct_initing.q>5)
+				{
+				junct_initing.qq++;
+
+				if(junct_initing.qq>3)
+					{
+
+					Calculated=ST1.GetString("now")+(string)(50+junct_initing.i*50/BSJunctionLib.N)+"%";
+
+
+					PostMessage(me,"Refresh","now",0);
+					if(sub_browser and !been_refreshing)
+						PropertyBrowserRefresh(sub_browser);
+
+					junct_initing.qq = 0;
+
+					PostMessage(me, "SelfTimedMessage", "ProcessJunctionIniting", 0.0);
+					return;
+					}
+
+				junct_initing.q=0;
+
+
+				PostMessage(me, "SelfTimedMessage", "ProcessJunctionIniting", 0.0);
+				return;
+				}
+
+
+
+
+
+
+			JuctionWithProperties J_element_i = (cast<JuctionWithProperties>(BSJunctionLib.DBSE[junct_initing.i].Object));
+
+
+			if(J_element_i.back_name != "")
+				{
+
+				int named_elem = unique_objBS.Find(J_element_i.back_name,false);
+	
+				if(named_elem < 0)
+					{
+					UniqueNamedObjElem new_unique_elem = new UniqueNamedObjElem();
+			
+					new_unique_elem.obj_itself = J_element_i.back;
+					new_unique_elem.JunctionName = BSJunctionLib.DBSE[junct_initing.i].a;
+
+					unique_objBS.AddElement(J_element_i.back_name,(cast<GSObject>(new_unique_elem)));
+					}
+				else
+					{
+
+					if((cast<UniqueNamedObjElem>(unique_objBS.DBSE[named_elem].Object)).obj_itself != J_element_i.back)	// неуникальный объект
+						junc_error2 = junc_error2 + J_element_i.back_name + ST1.GetString("err_info_2") + BSJunctionLib.DBSE[junct_initing.i].a +"', '" +(cast<UniqueNamedObjElem>(unique_objBS.DBSE[named_elem].Object)).JunctionName + "'<br>";
+					}
+				}
+
+
+
+			if(J_element_i.frontLeft_name != "")
+				{
+
+				int named_elem = unique_objBS.Find(J_element_i.frontLeft_name,false);
+	
+				if(named_elem < 0)
+					{
+					UniqueNamedObjElem new_unique_elem = new UniqueNamedObjElem();
+			
+					new_unique_elem.obj_itself = J_element_i.frontLeft;
+					new_unique_elem.JunctionName = BSJunctionLib.DBSE[junct_initing.i].a;
+
+			
+					unique_objBS.AddElement(J_element_i.frontLeft_name,(cast<GSObject>(new_unique_elem)));
+					}
+				else
+					{
+
+					if((cast<UniqueNamedObjElem>(unique_objBS.DBSE[named_elem].Object)).obj_itself != J_element_i.frontLeft)	// неуникальный объект
+						junc_error2 = junc_error2 + J_element_i.frontLeft_name + ST1.GetString("err_info_2") + BSJunctionLib.DBSE[junct_initing.i].a +"', '" +(cast<UniqueNamedObjElem>(unique_objBS.DBSE[named_elem].Object)).JunctionName + "'<br>";
+					}
+				}
+
+
+
+			if(J_element_i.frontRight_name != "")
+				{
+
+				int named_elem = unique_objBS.Find(J_element_i.frontRight_name,false);
+	
+				if(named_elem < 0)
+					{
+					UniqueNamedObjElem new_unique_elem = new UniqueNamedObjElem();
+			
+					new_unique_elem.obj_itself = J_element_i.frontRight;
+					new_unique_elem.JunctionName = BSJunctionLib.DBSE[junct_initing.i].a;
+
+			
+					unique_objBS.AddElement(J_element_i.frontRight_name,(cast<GSObject>(new_unique_elem)));
+					}
+				else
+					{
+
+					if((cast<UniqueNamedObjElem>(unique_objBS.DBSE[named_elem].Object)).obj_itself != J_element_i.frontRight)	// неуникальный объект
+						junc_error2 = junc_error2 + J_element_i.frontRight_name + ST1.GetString("err_info_2") + BSJunctionLib.DBSE[junct_initing.i].a +"', '" +(cast<UniqueNamedObjElem>(unique_objBS.DBSE[named_elem].Object)).JunctionName + "'<br>";
+					}
+				}
+
+			junct_initing.old_i = junct_initing.i;
+			junct_initing.i++;
+			}
+
+		int i;
+		for(i = 0; i < unique_objBS.N; i++)
+			{
+			(cast<UniqueNamedObjElem>(unique_objBS.DBSE[i].Object)).obj_itself = null;
+			unique_objBS.DBSE[i].Object = null;
+			}
+
+		unique_objBS.DBSE[0,] = null;
+		unique_objBS.N = 0;
+
+
+
+		if(junc_error2 != "")
+			junct_err_string = junct_err_string + "<br><br>" + ST1.GetString("junct_err_info_dublic") + junc_error2;
+
+
+
+
+		if(junct_err_string!="")
+			{
+
+			junct_err_string = ST1.GetString("junct_err_info")+ ST1.GetString("err_numb") +junct_initing.err_numb+"<br><br>" +junct_err_string;
+
+			Br_mode = true;
+			MainShowSignals();
+			}
+
+
+		Calculated=ST1.GetString("alrady_finished");
+
+		Junct_init = false;
+
+		PostMessage(me,"Refresh","now",0);
+		if(sub_browser and !been_refreshing)
+			PropertyBrowserRefresh(sub_browser);
+
+	//	Log_Junctions();
+
+
+
+		junct_initing.is_initing = false;
+
+
 		}
-
-
-	Calculated=ST1.GetString("alrady_finished");
-
-	Junct_init = false;
-
-	PostMessage(me,"Refresh","now",0);
-	if(sub_browser and !been_refreshing)
-		PropertyBrowserRefresh(sub_browser);
-
-	//Log_Junctions();
-
-
-
-	junct_initing.is_initing = false;
-
-
-
 	}
 
 
@@ -1104,6 +1275,7 @@ void InitJunctions_All()
 	junct_initing.q=0;
 
 	junct_err_string="";
+	junc_error2="";
 
 
 
@@ -1137,6 +1309,8 @@ void InitJunctions_All()
 
 	junct_initing.i = 0;
 
+	junct_initing.in_check = false;
+
 
 	cache2.Clear();
 	
@@ -1161,15 +1335,15 @@ Soup ToSoupJL()
 	for(i=0;i<BSJunctionLib.N;i++)
 		{
 
-			J_element=cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object);
-			string j_name = BSJunctionLib.DBSE[i].a;
+		J_element=cast<JuctionWithProperties>(BSJunctionLib.DBSE[i].Object);
+		string j_name = BSJunctionLib.DBSE[i].a;
 
 
-			sp3.SetNamedTag(j_name+".Permit_done",J_element.Permit_done);
-			sp3.SetNamedTag(j_name+".Poshorstnost",J_element.Poshorstnost);
-			sp3.SetNamedTag(j_name+".JunctPos",J_element.JunctPos);
-			sp3.SetNamedTag(j_name+".PrevJunction",J_element.PrevJunction);
-			sp3.SetNamedTag(j_name+".LastTrainVelDir",J_element.LastTrainVelDir);
+		sp3.SetNamedTag(j_name+".Permit_done",J_element.Permit_done);
+		sp3.SetNamedTag(j_name+".Poshorstnost",J_element.Poshorstnost);
+		sp3.SetNamedTag(j_name+".JunctPos",J_element.JunctPos);
+		sp3.SetNamedTag(j_name+".PrevJunction",J_element.PrevJunction);
+		sp3.SetNamedTag(j_name+".LastTrainVelDir",J_element.LastTrainVelDir);
 			
 		}
 
@@ -1200,7 +1374,7 @@ void FromSoupJL(Soup sp7)
 
 	
 	string J_name;
-	string temp_string1;
+
 
 
 	JuctionWithProperties[] J_elements=new JuctionWithProperties[size11];
@@ -1218,25 +1392,25 @@ void FromSoupJL(Soup sp7)
 
 		
 		
-		temp_string1=sp7.GetNamedTag(J_name+".back");
-		if(temp_string1!="")
-			J_element.back = cast<MapObject>Router.GetGameObject(temp_string1);
+		J_element.back_name=sp7.GetNamedTag(J_name+".back");
+		if(J_element.back_name!="")
+			J_element.back = cast<MapObject>Router.GetGameObject(J_element.back_name);
 		else
 			J_element.back = null;
 		J_element.back_dir =(int) sp7.GetNamedTagAsInt(J_name+".back_dir",1);
 
 
-		temp_string1=sp7.GetNamedTag(J_name+".frontLeft");
-		if(temp_string1!="")
-			J_element.frontLeft = cast<MapObject>Router.GetGameObject(temp_string1);
+		J_element.frontLeft_name=sp7.GetNamedTag(J_name+".frontLeft");
+		if(J_element.frontLeft_name!="")
+			J_element.frontLeft = cast<MapObject>Router.GetGameObject(J_element.frontLeft_name);
 		else
 			J_element.frontLeft = null;
 		J_element.frontLeft_dir =  sp7.GetNamedTagAsInt(J_name+".frontLeft_dir",1);
 
 
-		temp_string1=sp7.GetNamedTag(J_name+".frontRight");
-		if(temp_string1!="")
-			J_element.frontRight = cast<MapObject>Router.GetGameObject(temp_string1);
+		J_element.frontRight_name=sp7.GetNamedTag(J_name+".frontRight");
+		if(J_element.frontRight_name!="")
+			J_element.frontRight = cast<MapObject>Router.GetGameObject(J_element.frontRight_name);
 		else
 			J_element.frontRight = null;
 		J_element.frontRight_dir = sp7.GetNamedTagAsInt(J_name+".frontRight_dir",1);
@@ -1352,9 +1526,28 @@ public string GetDescriptionHTML(void)
 				)+
 			HTMLWindow.MakeCell
 				(
-				HTMLWindow.MakeLink("live://property/deletelongpaths",ST1.GetString("delete_long_paths"))
+				HTMLWindow.CheckBox("live://property/usd_route",is_uzd_route)+HTMLWindow.MakeLink("live://property/usd_route",ST1.GetString("usd_route"))
 				)
 			)+
+
+
+
+
+		HTMLWindow.MakeRow
+			(
+			HTMLWindow.MakeCell
+				(
+				HTMLWindow.MakeLink("live://property/deletelongpaths",ST1.GetString("delete_long_paths"))
+				)+
+			HTMLWindow.MakeCell
+				(
+				" "
+				)
+			)+
+
+
+
+
 
 		HTMLWindow.MakeRow
 			(
@@ -2324,6 +2517,8 @@ void MainShowSignals()
 	        mn.SetWindowRect(100+x,100+y,500+x,250+y);
 	else
 	        mn.SetWindowRect(100+x,100+y,700+x,250+y);
+
+	mn.SetWindowGrow(1, 1, 3000, 3000);
         
  }
 
@@ -2363,6 +2558,10 @@ public void LinkPropertyValue2(string propertyID)
 	else if(propertyID == "deletelongpaths")
         	{
 		DeleteLongPathsAll();
+		}
+	else if(propertyID == "usd_route")
+		{
+		is_uzd_route = !is_uzd_route;
 		}
 	else
 		{
@@ -2463,7 +2662,11 @@ public Soup GetProperties(void)
 
 	retSoup.SetNamedTag("reset_jun",reset_jun);
 
+
+	retSoup.SetNamedTag("is_uzd_route", is_uzd_route);
+
 	retSoup.SetNamedSoup("processing_junctions",processing_junctions);
+
      
 	return retSoup;
 	}
@@ -2618,6 +2821,9 @@ public void SetProperties(Soup soup)
 
 	reset_jun = soup.GetNamedTagAsBool("reset_jun",false);
 
+	
+	is_uzd_route = soup.GetNamedTagAsBool("is_uzd_route", false);
+
 	processing_junctions.Clear();
 	processing_junctions.Copy(soup.GetNamedSoup("processing_junctions"));
 	}
@@ -2693,6 +2899,7 @@ public void  Init (Asset asset)
 	PathLib= new BinarySortedArrayS2();
 	cache2=Constructors.NewSoup();
 	processing_junctions = Constructors.NewSoup();
+	unique_objBS = new BinarySortedArrayS();
 
 			
 	AddHandler(me,"TJunction_Path_source","Find_Junction_Path_base","AnsweringHander");
