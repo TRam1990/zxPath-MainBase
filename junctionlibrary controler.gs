@@ -2690,8 +2690,6 @@ void Initing1(Soup soup)
 		cache2.Clear();
 		cache2.Copy(soup.GetNamedSoup("my_soup1"));	
 
-		jun_load.IsIniting1_msg = true;
-
 
 
 		jun_load.i = 0;
@@ -2702,7 +2700,14 @@ void Initing1(Soup soup)
 			
 
 		if(jun_load.size11<=0)
+			{
+			InitPathCleaner();
 			return;
+			}
+
+
+
+		jun_load.IsIniting1_msg = true;
 
 
 		BSJunctionLib.DBSE[0,] = null;
@@ -2793,6 +2798,9 @@ void ProcessIniting1()
 
 
 	jun_load.IsIniting1_msg = false;
+
+
+	InitPathCleaner();
 	}
 
 
@@ -2906,7 +2914,7 @@ public void  Init (Asset asset)
 	AddHandler(me,"SelfTimedMessage","","SelfTimedHandler");
 
 
-	InitPathCleaner();
+	
 	
 
 	ST1= GetAsset().GetStringTable();

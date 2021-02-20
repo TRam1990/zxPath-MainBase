@@ -18,7 +18,7 @@ script-include-table
   0                                     <kuid2:151055:60038:5>
   1                                     <kuid2:151055:60049:2>
   2                                     <kuid:30501:1020>
-  3                                     <kuid2:400260:100120:53>
+  3                                     <kuid2:400260:100120:55>
 }
 script                                  "JunctionLibrary Controler"
 class                                   "zxMainJunctionController"
@@ -74,12 +74,12 @@ thumbnails
     height                              180
   }
 }
-kuid                                    <kuid2:400260:98888231:35>
+kuid                                    <kuid2:400260:98888231:36>
 
 kuid-table
 {
   0                                     <kuid2:151055:60038:5>
   1                                     <kuid2:151055:60049:2>
   2                                     <kuid:30501:1020>
-  3                                     <kuid2:400260:100120:53>
+  3                                     <kuid2:400260:100120:55>
 }

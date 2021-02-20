@@ -1220,12 +1220,12 @@ public bool ChangeSpanDirectionFor(string ST_name, int SignalId, int pathN)
 					int temp_id3=BSJunctionLib.Find(MO8.GetName());
 					if(temp_id3>=0)
 						{
-						if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id3].Object)).Permit_done)==0)
+						JuctionWithProperties JWP1=cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id3].Object);
+
+						if(JWP1.Permit_done==0)
 							return sign1.Switch_span();
 						else	
 							{
-							JuctionWithProperties JWP1=cast<JuctionWithProperties>(BSJunctionLib.DBSE[temp_id3].Object);
-
 							if(ThisJProtShorstn(temp_id3, prev))
 								{
 								if(JWP1.Poshorstnost)
@@ -1862,6 +1862,28 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 	else				// маршрут по станции
 		{
 		
+
+			int JunctionsNumber1=sp1.GetNamedTagAsInt("NumberOfObjects",0);
+
+			if(JunctionsNumber1==0)
+				return true;
+
+			
+			int[] junction_id = new int[JunctionsNumber1];
+
+			i=0;
+			while(i<JunctionsNumber1)	// определение свободности стрелок
+				{
+				junction_id[i]=BSJunctionLib.Find(TrainUtil.GetUpTo(sp1.GetNamedTag("object_"+i),","));
+
+				if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[ junction_id[i] ].Object)).Permit_done)!=0)
+					return false;
+
+				i++;		
+				}
+
+
+
 			string svetofor_Mname=sp1.GetNamedTag("object_Name");
 
 			sign1 = cast<zxSignal>(Router.GetGameObject(svetofor_Mname));	
@@ -1916,10 +1938,10 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 					int j_id1= BSJunctionLib.Find(J453.GetName());
 					if(j_id1>=0)
 						{
-						if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[j_id1].Object)).Permit_done)!=0)
+						JuctionWithProperties JWP1=cast<JuctionWithProperties>(BSJunctionLib.DBSE[j_id1].Object);
+
+						if(JWP1.Permit_done!=0)
 							{
-			
-							JuctionWithProperties JWP1=cast<JuctionWithProperties>(BSJunctionLib.DBSE[j_id1].Object);
 
 
 //er45="prev= "+prev.GetName()+" JWP1.back "+JWP1.back.GetName()+"JWP1.frontLeft"+JWP1.frontLeft.GetName()+"JWP1.frontRight"+JWP1.frontRight.GetName();
@@ -1933,7 +1955,7 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 								}
 							else
 								{
-								if(!JWP1.Poshorstnost and TrueJdir(j_id1, prev)==(cast<Junction>MO8).GetDirection())		// если стрелка с маршрутом переведена в том же направлении, которое ведёт к prev
+								if(!JWP1.Poshorstnost and TrueJdir(j_id1, prev)==(cast<Junction>J453).GetDirection())		// если стрелка с маршрутом переведена в том же направлении, которое ведёт к prev
 									return false;
 								}
 							}
@@ -1941,24 +1963,6 @@ bool CheckJunctionsAreFree(string ST_name, int SignalId, int pathN)
 					}
 				}
 
-			int JunctionsNumber1=sp1.GetNamedTagAsInt("NumberOfObjects",0);
-
-			if(JunctionsNumber1==0)
-				return true;
-
-			
-			int[] junction_id = new int[JunctionsNumber1];
-
-			i=0;
-			while(i<JunctionsNumber1)	// определение свободности стрелок
-				{
-				junction_id[i]=BSJunctionLib.Find(TrainUtil.GetUpTo(sp1.GetNamedTag("object_"+i),","));
-
-				if(((cast<JuctionWithProperties>(BSJunctionLib.DBSE[ junction_id[i] ].Object)).Permit_done)!=0)
-					return false;
-
-				i++;		
-				}
 
 			i=0;
 			while(i<JunctionsNumber1)	// определение свободности стрелок, окончательное
