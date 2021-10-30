@@ -501,65 +501,6 @@ void Log_Signals()
 
 
 
-bool Comp_str_FL2(string a,string b)
-	{
-	int i=0;
-
-	while(i<=a.size())
-		{
-		if(i>=a.size())
-			return true;
-		if(i>=b.size())
-			return false;
-
-		if(a[i]>b[i])
-			return false;
-		if(a[i]<b[i])
-			return true;
-		++i;
-		}
-
-
-	return false;
-	}
-
-
-
-void SortAllStations()
-	{
-	int i, j,q;
-	int L=StationProperties.GetNamedTagAsInt("st_Number",0)-1;
-
-	string st_name1;
-	string st_name2;
- 
-	for( i=0; i < L; i++) 
-		{
-
-		for( j = 0; j < L-i; j++ ) 
-			{
-     			q=j+1;
-
-
-			st_name1=StationProperties.GetNamedTag("station_name_by_ID"+q);
-			st_name2=StationProperties.GetNamedTag("station_name_by_ID"+j);
-
-
-			if( Comp_str_FL2(st_name1 , st_name2))
-				{
-				StationProperties.SetNamedTag("station_name_by_ID"+j,  st_name1);
-				StationProperties.SetNamedTag("station_name_by_ID"+q,  st_name2);
-
-				StationProperties.SetNamedTag(st_name1,j);
-				StationProperties.SetNamedTag(st_name2,q);
-
-    				}
-  			}
-		}
-	}
-
-
-
 
 bool Comp_str_FL3(string a,string b)
 	{
@@ -583,6 +524,53 @@ bool Comp_str_FL3(string a,string b)
 
 	return false;
 	}
+
+
+void QuickSortStations(int first, int last)
+	{
+	if(first >= last)
+		return;
+
+	int left = first;
+	int right = last;
+	int middle_pos = (left + right) / 2;
+
+	string middle_val = StationProperties.GetNamedTag("station_name_by_ID"+middle_pos);
+	
+	while (left <= right)
+		{
+            	while(Comp_str_FL3(StationProperties.GetNamedTag("station_name_by_ID"+left), middle_val))
+			left++;
+            	while(Comp_str_FL3(middle_val, StationProperties.GetNamedTag("station_name_by_ID"+right)))
+			right--;
+
+           	if (left <= right)
+            		{
+			string st_name_tmp=StationProperties.GetNamedTag("station_name_by_ID"+left);
+			StationProperties.SetNamedTag("station_name_by_ID"+left,StationProperties.GetNamedTag("station_name_by_ID"+right));
+			StationProperties.SetNamedTag("station_name_by_ID"+right,st_name_tmp);
+
+                	left++;
+                	right--;
+            		}
+		}
+
+	QuickSortStations(first, right);
+	QuickSortStations(left, last);
+
+	}
+
+
+
+void SortAllStations()
+	{
+	QuickSortStations(0, StationProperties.GetNamedTagAsInt("st_Number",0)-1);
+	}
+
+
+
+
+
 
 
 
